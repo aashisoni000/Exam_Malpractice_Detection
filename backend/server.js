@@ -8,9 +8,9 @@ const config = require('./config/env');
 
 // ── Route Imports ─────────────────────────────────────────────────────────────
 const authRoutes = require('./routes/authRoutes');
+const examRoutes = require('./routes/examRoutes');
 // Future routes (add here as features are built):
 // const studentRoutes = require('./routes/studentRoutes');
-// const examRoutes    = require('./routes/examRoutes');
 // const reportRoutes  = require('./routes/reportRoutes');
 // const ipLogRoutes   = require('./routes/ipLogRoutes');
 // ──────────────────────────────────────────────────────────────────────────────
@@ -33,8 +33,8 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // ── Route Mounting ────────────────────────────────────────────────────────────
 app.use('/api', authRoutes);
+app.use('/api/exams', examRoutes);
 // app.use('/api/students', studentRoutes);
-// app.use('/api/exams',    examRoutes);
 // app.use('/api/reports',  reportRoutes);
 // app.use('/api/ip-logs',  ipLogRoutes);
 // ──────────────────────────────────────────────────────────────────────────────

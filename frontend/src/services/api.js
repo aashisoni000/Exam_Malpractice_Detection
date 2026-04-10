@@ -46,11 +46,34 @@ export const authAPI = {
     api.post('/login', { email, password, role }),
 };
 
-// ── Future API Modules (add as features are built) ───────────────────────────
-// export const studentAPI = { ... };
-// export const examAPI    = { ... };
+// ── Exam API ──────────────────────────────────────────────────────────────────
+export const examAPI = {
+  /** Admin: create a new exam */
+  create: (subject_name, exam_date, duration_minutes) =>
+    api.post('/exams', { subject_name, exam_date, duration_minutes }),
+
+  /** Get all exams */
+  getAll: () => api.get('/exams'),
+
+  /** Get exams available to a student */
+  getForStudent: (student_id) => api.get(`/exams/student/${student_id}`),
+
+  /** Start an exam attempt */
+  start: (student_id, exam_id) =>
+    api.post('/exams/start', { student_id, exam_id }),
+
+  /** Submit exam answers */
+  submit: (attempt_id, answers_text) =>
+    api.post('/exams/submit', { attempt_id, answers_text }),
+
+  /** Log a suspicion event (tab switch, copy-paste, etc.) */
+  logEvent: (attempt_id, reason, severity = 'Medium') =>
+    api.post('/exams/log-event', { attempt_id, reason, severity }),
+};
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Future modules:
 // export const reportAPI  = { ... };
 // export const ipLogAPI   = { ... };
-// ──────────────────────────────────────────────────────────────────────────────
 
 export default api;
