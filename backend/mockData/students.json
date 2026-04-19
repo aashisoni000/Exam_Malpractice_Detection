@@ -1,0 +1,9 @@
+[
+  {
+    "student_id": 1,
+    "student_name": "Alice Johnson",
+    "email": "student@exam.com",
+    "password_hash": "mockhash123",
+    "current_status": "Active"
+  }
+]

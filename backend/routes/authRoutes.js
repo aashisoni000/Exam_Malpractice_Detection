@@ -1,17 +1,7 @@
-// routes/authRoutes.js
-// All authentication-related routes.
-// Prefix: /api  (mounted in server.js)
-
 const express = require('express');
 const router = express.Router();
-const { login } = require('../controllers/authController');
+const authController = require('../controllers/authController');
 
-// POST /api/login
-router.post('/login', login);
-
-// Future auth routes:
-// router.post('/logout', logout);
-// router.post('/register', register);
-// router.get('/me', verifyToken, getCurrentUser);
+router.post('/login', authController.login);
 
 module.exports = router;

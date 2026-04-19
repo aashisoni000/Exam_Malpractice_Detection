@@ -1,12 +1,13 @@
-// pages/TakeExam.jsx
-// Student exam portal: Handles timer, questions, and malpractice detection.
-// Route: /student-dashboard/take-exam/:exam_id
-
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
-import { examAPI } from '../services/api';
-import { ClockIcon, ShieldCheckIcon, ExclamationTriangleIcon } from '../components/Icons';
-import Toast from '../components/Toast';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getExams, startExam, submitExam } from '../api/examApi';
+import { ClockIcon, ShieldCheckIcon } from '../components/Icons';
+import Toast from '../components/common/Toast';
+import Loader from '../components/common/Loader';
+import Card, { CardContent } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import { useAuth } from '../hooks/useAuth';
 
 const MOCK_QUESTIONS = [
   { id: 1, text: "Explain the concept of Database Normalization and its importance." },
@@ -15,44 +16,40 @@ const MOCK_QUESTIONS = [
 ];
 
 const TakeExam = () => {
-  const { exam_id } = useParams();
-  const { user } = useOutletContext();
+  const { examId } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [exam, setExam] = useState(null);
   const [attemptId, setAttemptId] = useState(null);
   const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(0); // in seconds
+  const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const timerRef = useRef(null);
-  const isWarnedRef = useRef(false);
 
-  // ── Initialization ──────────────────────────────────────────────────────────
   useEffect(() => {
     const initExam = async () => {
       try {
-        // Fetch exam details first to get duration
-        const { data: examListData } = await examAPI.getForStudent(user.id);
-        const currentExam = examListData.exams.find(e => e.exam_id === parseInt(exam_id));
+        const data = await getExams();
+        const currentExam = data.find(e => e.exam_id === parseInt(examId));
         
         if (!currentExam) {
           setToast({ message: "Exam not found.", type: "error" });
-          setTimeout(() => navigate('/student-dashboard/exams'), 2000);
+          setTimeout(() => navigate('/student-dashboard'), 2000);
           return;
         }
 
         setExam(currentExam);
         setTimeLeft(currentExam.duration_minutes * 60);
 
-        // Start attempt on backend
-        const { data: startData } = await examAPI.start(user.id, exam_id);
-        if (startData.success) {
+        const startData = await startExam({ student_id: user.id, exam_id: examId });
+        if (startData.attempt_id) {
           setAttemptId(startData.attempt_id);
         } else {
-          setToast({ message: startData.message, type: "error" });
+          setToast({ message: 'Failed to start attempt', type: "error" });
         }
       } catch (err) {
         setToast({ message: "Failed to initialize exam session.", type: "error" });
@@ -63,13 +60,11 @@ const TakeExam = () => {
 
     initExam();
 
-    // Cleanup timer on unmount
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [exam_id, user.id, navigate]);
+  }, [examId, user, navigate]);
 
-  // ── Timer Logic ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (timeLeft > 0 && !loading && !isSubmitting) {
       timerRef.current = setInterval(() => {
@@ -87,21 +82,6 @@ const TakeExam = () => {
     return () => clearInterval(timerRef.current);
   }, [timeLeft, loading, isSubmitting]);
 
-  // ── Tab Switch Detection ──────────────────────────────────────────────────
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && attemptId && !isSubmitting) {
-        // Log suspicion event
-        examAPI.logEvent(attemptId, "Tab switched / Window minimized", "Medium");
-        setToast({ message: "Malpractice activity detected: Tab switch logged.", type: "warning" });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [attemptId, isSubmitting]);
-
-  // ── Format Time ─────────────────────────────────────────────────────────────
   const formatTime = (seconds) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -109,7 +89,6 @@ const TakeExam = () => {
     return [h, m, s].map(v => v < 10 ? "0" + v : v).join(":");
   };
 
-  // ── Actions ─────────────────────────────────────────────────────────────────
   const handleAnswerChange = (qId, value) => {
     setAnswers(prev => ({ ...prev, [qId]: value }));
   };
@@ -128,86 +107,78 @@ const TakeExam = () => {
 
     try {
       const answersText = JSON.stringify(answers);
-      const { data } = await examAPI.submit(attemptId, answersText);
+      await submitExam({ attempt_id: attemptId, answers_text: answersText });
 
-      if (data.success) {
-        setToast({ message: "Exam submitted successfully!", type: "success" });
-        setTimeout(() => navigate('/student-dashboard'), 2000);
-      } else {
-        setToast({ message: data.message, type: "error" });
-        setIsSubmitting(false);
-      }
+      setToast({ message: "Exam submitted successfully!", type: "success" });
+      setTimeout(() => navigate('/student-dashboard'), 2000);
     } catch (err) {
       setToast({ message: "Submission failed. Please try again.", type: "error" });
       setIsSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 text-indigo-500 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full"></div>
-      </div>
-    );
-  }
+  if (loading) return <Loader fullScreen />;
+
+  const isLowTime = timeLeft < 300; // < 5 mins
 
   return (
     <div className="max-w-4xl mx-auto page-enter pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header with Timer */}
-      <div className="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md py-4 mb-8 border-b border-white/5 flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-[#F8F9FA]/90 backdrop-blur-md py-4 mb-8 flex items-center justify-between border-b border-gray-200">
         <div>
-          <h1 className="text-xl font-bold text-white">{exam?.subject_name}</h1>
-          <p className="text-slate-500 text-xs">Stay on this tab. All activity is being monitored.</p>
+          <h1 className="text-2xl font-bold text-gray-800">{exam?.subject_name}</h1>
+          <p className="text-gray-500 text-sm font-medium">Stay on this tab. All activity is being monitored.</p>
         </div>
-        <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border ${timeLeft < 300 ? 'bg-red-500/10 border-red-500/30' : 'bg-indigo-500/10 border-indigo-500/30'}`}>
-          <ClockIcon className={`w-5 h-5 ${timeLeft < 300 ? 'text-red-400 animate-pulse' : 'text-indigo-400'}`} />
-          <span className={`font-mono text-lg font-bold ${timeLeft < 300 ? 'text-red-400' : 'text-indigo-400'}`}>
+        <Badge variant={isLowTime ? 'danger' : 'default'} className="px-5 py-2.5 rounded-xl border border-transparent flex items-center gap-3">
+          <ClockIcon className={`w-5 h-5 ${isLowTime ? 'animate-pulse' : ''}`} />
+          <span className="font-mono text-xl font-bold tracking-wider">
             {formatTime(timeLeft)}
           </span>
-        </div>
+        </Badge>
       </div>
 
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         {MOCK_QUESTIONS.map((q, index) => (
-          <div key={q.id} className="card relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500/50"></div>
-            <div className="mb-4">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Question {index + 1}</span>
-              <h3 className="text-lg text-white font-medium mt-1">{q.text}</h3>
-            </div>
-            <textarea
-              className="input-field min-h-[150px] resize-none"
-              placeholder="Type your answer here..."
-              value={answers[q.id] || ''}
-              onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
+          <Card key={q.id} className="relative overflow-hidden group border-l-4 border-l-[#7FB77E]">
+            <CardContent>
+              <div className="mb-4">
+                <span className="text-xs font-bold text-[#4d7f4c] uppercase tracking-widest bg-[#e5efdf] px-2 py-1 rounded-md">Question {index + 1}</span>
+                <h3 className="text-lg text-gray-800 font-semibold mt-3">{q.text}</h3>
+              </div>
+              <textarea
+                className="w-full bg-white border border-gray-300 text-gray-800 focus:border-[#7FB77E] focus:ring-2 focus:ring-[#7FB77E]/20 rounded-xl px-4 py-3 outline-none transition-all min-h-[150px] resize-y"
+                placeholder="Type your answer here..."
+                value={answers[q.id] || ''}
+                onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                disabled={isSubmitting}
+              />
+            </CardContent>
+          </Card>
         ))}
 
-        {/* malptectice warning */}
-        <div className="flex items-start gap-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
-          <ShieldCheckIcon className="w-6 h-6 text-amber-400 shrink-0" />
+        {/* malpractice warning */}
+        <div className="flex items-start gap-4 p-5 rounded-2xl bg-[#fff8e6] border border-[#f5d996]">
+          <ShieldCheckIcon className="w-6 h-6 text-[#d99f26] shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-300">Integrity Monitoring Active</p>
-            <p className="text-xs text-amber-500/80 mt-0.5">
+            <p className="text-sm font-bold text-[#b38014]">Integrity Monitoring Active</p>
+            <p className="text-sm text-[#996d11] mt-1 font-medium leading-relaxed">
               Switching tabs, copying text, or leaving this window will be logged as a suspicion event. 
               Ensure a stable internet connection before submitting.
             </p>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-4">
-          <button
+        <div className="flex justify-end gap-3 mt-6">
+          <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="btn-primary px-12 py-4 text-lg shadow-indigo-500/20 flex items-center gap-3"
+            className="px-10 py-3.5 text-lg"
           >
             {isSubmitting ? 'Submitting...' : 'Submit Exam'}
-            {!isSubmitting && <ShieldCheckIcon className="w-5 h-5" />}
-          </button>
+            {!isSubmitting && <ShieldCheckIcon className="w-5 h-5 ml-2" />}
+          </Button>
         </div>
       </div>
     </div>

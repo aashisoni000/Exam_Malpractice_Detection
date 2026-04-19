@@ -1,0 +1,13 @@
+[
+  {
+    "report_id": 1,
+    "attempt_id": 1,
+    "student_id": 1,
+    "exam_id": 1,
+    "student_name": "Alice Johnson",
+    "exam_name": "Database Systems",
+    "reason": "Tab switched / Window minimized",
+    "severity": "Medium",
+    "report_time": "2026-05-15 10:15:32"
+  }
+]
