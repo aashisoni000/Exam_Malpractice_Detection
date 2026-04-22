@@ -7,6 +7,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { examAPI } from '../services/api';
 import Toast from '../components/Toast';
 import { PlusIcon, BookOpenIcon, ClockIcon } from '../components/Icons';
+import Card, { CardContent } from '../components/ui/Card';
 
 const CreateExam = () => {
   const { user } = useOutletContext();

@@ -27,7 +27,7 @@ const AdminLayout = () => {
       <Navbar user={user} onLogout={handleLogout} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar navItems={adminNavItems} title="Admin Panel" />
-        <main className="flex-1 overflow-y-auto p-6 bg-white">
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50/30">
           <div className="page-enter">
             <Outlet context={{ user }} />
           </div>

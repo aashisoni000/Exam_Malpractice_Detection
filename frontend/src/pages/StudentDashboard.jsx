@@ -49,7 +49,7 @@ const StudentDashboard = () => {
               <BookOpenIcon className="w-5 h-5 text-[#7FB77E]" />
               Recent Exams
             </h2>
-            <div className="flex flex-col items-center justify-center py-10 text-center bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="flex flex-col items-center justify-center py-10 text-center bg-[#F5F0E6] rounded-xl border border-[#E6DECE] shadow-sm">
               <div className="w-12 h-12 rounded-full bg-[#f1f6ef] flex items-center justify-center mb-4">
                 <BookOpenIcon className="w-6 h-6 text-[#7FB77E]" />
               </div>
@@ -66,7 +66,7 @@ const StudentDashboard = () => {
               <DocumentIcon className="w-5 h-5 text-[#7FB77E]" />
               Recent Reports
             </h2>
-            <div className="flex flex-col items-center justify-center py-10 text-center bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="flex flex-col items-center justify-center py-10 text-center bg-[#F5F0E6] rounded-xl border border-[#E6DECE] shadow-sm">
               <div className="w-12 h-12 rounded-full bg-[#f1f6ef] flex items-center justify-center mb-4">
                 <DocumentIcon className="w-6 h-6 text-[#7FB77E]" />
               </div>

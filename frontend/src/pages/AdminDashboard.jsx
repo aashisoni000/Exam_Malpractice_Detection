@@ -58,7 +58,7 @@ const AdminDashboard = () => {
               { label: 'Database', status: 'Connecting...', bgColor: 'bg-orange-100', dotColor: 'bg-orange-500', textColor: 'text-orange-700' },
               { label: 'Detection Engine', status: 'Active', bgColor: 'bg-blue-100', dotColor: 'bg-blue-500', textColor: 'text-blue-700' },
             ].map((item) => (
-              <div key={item.label} className="flex items-center gap-4 bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+              <div key={item.label} className="flex items-center gap-4 bg-[#F5F0E6] border border-[#E6DECE] rounded-xl p-4 shadow-sm">
                 <div className={`w-10 h-10 rounded-lg ${item.bgColor} flex items-center justify-center`}>
                   <span className={`w-3 h-3 rounded-full ${item.dotColor} shadow-sm`}></span>
                 </div>

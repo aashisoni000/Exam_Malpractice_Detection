@@ -80,7 +80,7 @@ const QuestionCard = ({ q, index, onChange, onRemove }) => {
     onChange({ ...q, options: q.options.map((o, oi) => oi === i ? { ...o, ...patch } : o) });
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-[#F5F0E6] border border-[#E6DECE] rounded-2xl shadow-sm overflow-hidden">
       {/* Card header */}
       <div className="flex items-center justify-between px-5 py-3.5 bg-[#f5f9f4] border-b border-gray-200">
         <span className="text-xs font-bold text-[#7FB77E] uppercase tracking-widest">
@@ -204,7 +204,7 @@ const QuestionCard = ({ q, index, onChange, onRemove }) => {
 
 // ── Saved question card (read-only) ────────────────────────────────
 const SavedQuestionCard = ({ q, index }) => (
-  <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+  <div className="bg-[#F5F0E6] border border-[#E6DECE] rounded-2xl shadow-sm p-5">
     <div className="flex items-start justify-between gap-3 mb-3">
       <p className="font-semibold text-gray-800 text-sm leading-snug">
         <span className="text-[#7FB77E] font-bold mr-2">Q{index + 1}.</span>
