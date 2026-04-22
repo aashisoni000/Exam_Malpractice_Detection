@@ -89,17 +89,17 @@ const Login = () => {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Email address
+                  {role === 'admin' ? 'Email address' : 'Registration Number'}
                 </label>
                 <input
                   id="email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete="username"
                   required
                   value={form.email}
                   onChange={handleChange}
-                  placeholder={role === 'admin' ? 'admin@exam.com' : 'student@exam.com'}
+                  placeholder={role === 'admin' ? 'admin@exam.com' : 'e.g. RA2411026010894'}
                   className="w-full bg-white border border-gray-300 text-gray-800 focus:border-[#7FB77E] focus:ring-2 focus:ring-[#7FB77E]/20 rounded-xl px-4 py-2.5 outline-none transition-all"
                 />
               </div>
@@ -135,7 +135,7 @@ const Login = () => {
             <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
               <p className="text-xs text-gray-500 font-bold mb-2 uppercase tracking-wide">Demo credentials</p>
               <p className="text-sm text-gray-600 mb-1">
-                <span className="font-semibold text-gray-800">Student:</span> student@exam.com / student123
+                <span className="font-semibold text-gray-800">Student:</span> RA2411026010870 / (any password)
               </p>
               <p className="text-sm text-gray-600">
                 <span className="font-semibold text-gray-800">Admin:</span> admin@exam.com / admin123

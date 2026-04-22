@@ -1,66 +1,65 @@
-const fs = require('fs');
-const path = require('path');
-
-let exams = require('../mockData/exams.json');
-let attempts = require('../mockData/attempts.json');
-let submissions = [];
-let ipLogs = [];
+const { pool } = require('../config/db');
 
 const getAllExams = async () => {
-  return exams;
+  const [rows] = await pool.query('SELECT * FROM Exam');
+  return rows;
 };
 
 const createExam = async (examData) => {
-  const newExam = {
-    exam_id: exams.length + 1,
-    subject_name: examData.subject_name,
-    exam_date: examData.exam_date,
-    duration_minutes: examData.duration_minutes
-  };
-  exams.push(newExam);
-  return newExam;
+  const { subject_name, exam_date, duration_minutes } = examData;
+  const [result] = await pool.query(
+    'INSERT INTO Exam (subject_name, exam_date, duration_minutes) VALUES (?, ?, ?)',
+    [subject_name, exam_date, duration_minutes]
+  );
+  return { exam_id: result.insertId, subject_name, exam_date, duration_minutes };
 };
 
 const startExam = async (student_id, exam_id, ip_address) => {
-  const newAttempt = {
-    attempt_id: attempts.length + 1,
-    student_id,
-    exam_id,
-    start_time: new Date().toISOString()
-  };
-  attempts.push(newAttempt);
+  // Insert Exam_Attempt
+  const [attemptResult] = await pool.query(
+    'INSERT INTO Exam_Attempt (student_id, exam_id, start_time) VALUES (?, ?, NOW())',
+    [student_id, exam_id]
+  );
+  const attempt_id = attemptResult.insertId;
 
-  ipLogs.push({
-    log_id: ipLogs.length + 1,
-    attempt_id: newAttempt.attempt_id,
-    ip_address,
-    login_time: new Date().toISOString()
-  });
+  // Log IP
+  await pool.query(
+    'INSERT INTO IP_Log (attempt_id, ip_address, login_time) VALUES (?, ?, NOW())',
+    [attempt_id, ip_address]
+  );
 
-  return newAttempt;
+  return { attempt_id, student_id, exam_id };
 };
 
-const submitExam = async (attempt_id, answers_text) => {
-  const attempt = attempts.find(a => a.attempt_id == attempt_id);
-  if (!attempt) throw new Error('Attempt not found');
+const submitExam = async (attempt_id, answers_text, ip_address) => {
+  // Update Exam_Attempt end time
+  await pool.query(
+    `UPDATE Exam_Attempt
+     SET end_time = NOW(),
+         total_time_minutes = TIMESTAMPDIFF(MINUTE, start_time, NOW())
+     WHERE attempt_id = ?`,
+    [attempt_id]
+  );
 
-  attempt.end_time = new Date().toISOString();
-  attempt.total_time_minutes = Math.round((new Date(attempt.end_time) - new Date(attempt.start_time)) / 60000);
+  // Insert Submission
+  const [result] = await pool.query(
+    'INSERT INTO Submission (attempt_id, answers_text, submission_time) VALUES (?, ?, NOW())',
+    [attempt_id, answers_text]
+  );
 
-  const submission = {
-    submission_id: submissions.length + 1,
-    attempt_id,
-    answers_text,
-    submission_time: new Date().toISOString()
-  };
-  submissions.push(submission);
-  
-  return attempt;
+  // Log IP on submit
+  const [attemptRows] = await pool.query(
+    'SELECT * FROM Exam_Attempt WHERE attempt_id = ?',
+    [attempt_id]
+  );
+  if (attemptRows.length > 0) {
+    await pool.query(
+      'INSERT INTO IP_Log (attempt_id, ip_address, login_time) VALUES (?, ?, NOW())',
+      [attempt_id, ip_address]
+    );
+  }
+
+  return { submission_id: result.insertId, attempt_id };
 };
 
-module.exports = {
-  getAllExams,
-  createExam,
-  startExam,
-  submitExam
-};
+module.exports = { getAllExams, createExam, startExam, submitExam };

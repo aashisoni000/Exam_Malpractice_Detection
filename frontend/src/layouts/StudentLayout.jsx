@@ -7,8 +7,8 @@ import { useAuth } from '../hooks/useAuth';
 
 const studentNavItems = [
   { label: 'Dashboard', to: '/student-dashboard', icon: <HomeIcon /> },
-  { label: 'My Exams', to: '/student-dashboard/exams', icon: <BookOpenIcon /> },
-  { label: 'My Reports', to: '/student-dashboard/reports', icon: <DocumentIcon /> },
+  { label: 'My Exams', to: '/student-dashboard/my-exams', icon: <BookOpenIcon /> },
+  { label: 'My Reports', to: '/student-dashboard/my-reports', icon: <DocumentIcon /> },
 ];
 
 const StudentLayout = () => {

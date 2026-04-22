@@ -33,7 +33,8 @@ exports.startExam = async (req, res, next) => {
 exports.submitExam = async (req, res, next) => {
   try {
     const { attempt_id, answers_text } = req.body;
-    const data = await examService.submitExam(attempt_id, answers_text);
+    const ip_address = req.ip || req.connection.remoteAddress;
+    const data = await examService.submitExam(attempt_id, answers_text, ip_address);
     sendSuccess(res, data, 'Exam submitted successfully');
   } catch (err) {
     next(err);

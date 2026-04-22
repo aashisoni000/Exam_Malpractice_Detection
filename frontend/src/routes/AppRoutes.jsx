@@ -2,20 +2,29 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
-// Pages
+// Pages - Auth
 import Login from '../pages/Login';
-import StudentDashboard from '../pages/StudentDashboard';
-import AdminDashboard from '../pages/AdminDashboard';
-import Reports from '../pages/Reports';
-import TakeExam from '../pages/TakeExam';
-import CreateExam from '../pages/CreateExam';
 import NotFound from '../pages/NotFound';
+
+// Pages - Student
+import StudentDashboard from '../pages/StudentDashboard';
+import MyExams from '../pages/MyExams';
+import MyReports from '../pages/MyReports';
+import TakeExam from '../pages/TakeExam';
+
+// Pages - Admin
+import AdminDashboard from '../pages/AdminDashboard';
+import Students from '../pages/Students';
+import Exams from '../pages/Exams';
+import Reports from '../pages/Reports';
+import SuspicionLogs from '../pages/SuspicionLogs';
+import CreateExam from '../pages/CreateExam';
 
 // Layouts
 import StudentLayout from '../layouts/StudentLayout';
 import AdminLayout from '../layouts/AdminLayout';
 
-// Routes
+// Guards
 import ProtectedRoute from './ProtectedRoute';
 
 const AppRoutes = () => {
@@ -23,6 +32,7 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Public */}
       <Route
         path="/login"
         element={
@@ -32,7 +42,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Student Routes */}
+      {/* ─── Student Routes ──────────────────────────────────── */}
       <Route
         path="/student-dashboard"
         element={
@@ -42,10 +52,12 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<StudentDashboard />} />
+        <Route path="my-exams" element={<MyExams />} />
+        <Route path="my-reports" element={<MyReports />} />
         <Route path="take-exam/:examId" element={<TakeExam />} />
       </Route>
 
-      {/* Admin Routes */}
+      {/* ─── Admin Routes ────────────────────────────────────── */}
       <Route
         path="/admin-dashboard"
         element={
@@ -55,10 +67,14 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<AdminDashboard />} />
-        <Route path="create-exam" element={<CreateExam />} />
+        <Route path="students" element={<Students />} />
+        <Route path="exams" element={<Exams />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="suspicion-logs" element={<SuspicionLogs />} />
+        <Route path="create-exam" element={<CreateExam />} />
       </Route>
 
+      {/* Fallbacks */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
