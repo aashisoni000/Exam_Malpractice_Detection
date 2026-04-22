@@ -50,7 +50,7 @@ const Exams = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-gray-200">
-                {['Exam ID', 'Subject Name', 'Date', 'Duration'].map(h => (
+                {['Exam ID', 'Subject Name', 'Date', 'Duration', 'Actions'].map(h => (
                   <th key={h} className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -77,6 +77,15 @@ const Exams = () => {
                       <ClockIcon className="w-4 h-4 text-[#7FB77E]" />
                       <span className="font-medium">{exam.duration_minutes} minutes</span>
                     </div>
+                  </td>
+                  <td className="py-4 px-4">
+                    <button
+                      onClick={() => navigate(`/admin-dashboard/exam-builder/${exam.exam_id}`)}
+                      className="text-xs font-semibold px-3 py-1.5 bg-[#e5efdf] text-[#4d7f4c]
+                                 rounded-lg hover:bg-[#d4e6d0] transition-colors"
+                    >
+                      Build Questions
+                    </button>
                   </td>
                 </tr>
               )) : (

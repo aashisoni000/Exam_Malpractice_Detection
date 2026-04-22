@@ -44,13 +44,22 @@ const CreateExam = () => {
 
     setSubmitting(true);
     try {
-      await examAPI.create(
+      const res = await examAPI.create(
         form.subject_name.trim(),
         form.exam_date,
         parseInt(form.duration_minutes)
       );
-      setToast({ message: `Exam "${form.subject_name}" created successfully!`, type: 'success' });
-      setTimeout(() => navigate('/admin-dashboard'), 1800);
+      // axios wraps data: res.data is the server response body
+      const exam = res?.data?.data?.exam || res?.data?.exam || {};
+      const examId = exam.exam_id;
+      setToast({ message: `Exam "${form.subject_name}" created! Add questions now.`, type: 'success' });
+      setTimeout(() => {
+        if (examId) {
+          navigate(`/admin-dashboard/exam-builder/${examId}`);
+        } else {
+          navigate('/admin-dashboard/exams');
+        }
+      }, 1500);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to create exam. Check backend connection.';
       setToast({ message: msg, type: 'error' });
