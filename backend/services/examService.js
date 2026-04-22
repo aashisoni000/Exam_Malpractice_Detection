@@ -17,14 +17,14 @@ const createExam = async (examData) => {
 const startExam = async (student_id, exam_id, ip_address) => {
   // Insert Exam_Attempt
   const [attemptResult] = await pool.query(
-    'INSERT INTO Exam_Attempt (student_id, exam_id, start_time) VALUES (?, ?, NOW())',
+    'INSERT INTO Exam_Attempt (student_id, exam_id, start_time, end_time, total_time_minutes) VALUES (?, ?, NOW(), NOW(), 0)',
     [student_id, exam_id]
   );
   const attempt_id = attemptResult.insertId;
 
   // Log IP
   await pool.query(
-    'INSERT INTO IP_Log (attempt_id, ip_address, login_time) VALUES (?, ?, NOW())',
+    'INSERT INTO IP_Log (attempt_id, ip_address) VALUES (?, ?)',
     [attempt_id, ip_address]
   );
 
@@ -41,23 +41,17 @@ const submitExam = async (attempt_id, answers_text, ip_address) => {
     [attempt_id]
   );
 
-  // Insert Submission
+  // Insert Submission - using answers_text for legacy support and answers_json for new logic
   const [result] = await pool.query(
-    'INSERT INTO Submission (attempt_id, answers_text, submission_time) VALUES (?, ?, NOW())',
-    [attempt_id, answers_text]
+    'INSERT INTO Submission (attempt_id, answers_text, submission_time, answers_json) VALUES (?, ?, NOW(), ?)',
+    [attempt_id, answers_text, answers_text]
   );
 
   // Log IP on submit
-  const [attemptRows] = await pool.query(
-    'SELECT * FROM Exam_Attempt WHERE attempt_id = ?',
-    [attempt_id]
+  await pool.query(
+    'INSERT INTO IP_Log (attempt_id, ip_address) VALUES (?, ?)',
+    [attempt_id, ip_address]
   );
-  if (attemptRows.length > 0) {
-    await pool.query(
-      'INSERT INTO IP_Log (attempt_id, ip_address, login_time) VALUES (?, ?, NOW())',
-      [attempt_id, ip_address]
-    );
-  }
 
   return { submission_id: result.insertId, attempt_id };
 };
