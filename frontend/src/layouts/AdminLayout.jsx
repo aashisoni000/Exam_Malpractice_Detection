@@ -23,11 +23,11 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-screen overflow-hidden bg-white">
       <Navbar user={user} onLogout={handleLogout} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar navItems={adminNavItems} title="Admin Panel" />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-white">
           <div className="page-enter">
             <Outlet context={{ user }} />
           </div>

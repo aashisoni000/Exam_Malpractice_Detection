@@ -2,14 +2,14 @@ import React from 'react';
 
 const Card = ({ children, className = '' }) => {
   return (
-    <div className={`bg-[#F5F0E6] rounded-2xl shadow-sm border border-[#e6dece] overflow-hidden ${className}`}>
+    <div className={`bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden ${className}`}>
       {children}
     </div>
   );
 };
 
 export const CardHeader = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-b border-[#e6dece] ${className}`}>
+  <div className={`px-6 py-4 border-b border-gray-50 ${className}`}>
     {children}
   </div>
 );

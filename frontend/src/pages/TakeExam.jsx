@@ -143,7 +143,7 @@ const TakeExam = () => {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header with Timer */}
-      <div className="sticky top-0 z-20 bg-[#F8F9FA]/95 backdrop-blur-md py-4 mb-8 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-20 bg-white py-4 mb-8 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">{exam?.subject_name}</h1>
           <p className="text-gray-500 text-xs font-medium uppercase tracking-tight">Integrity Monitoring Active</p>

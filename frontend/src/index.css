@@ -2,11 +2,11 @@
 
 :root {
   --color-primary: #7FB77E;
-  --color-primary-hover: #6ea06c;
+  --color-primary-hover: #6aa96b;
   --color-secondary: #F5F0E6;
   --color-accent: #A7D7C5;
-  --color-text: #374151; /* gray-700 */
-  --color-text-light: #6b7280; /* gray-500 */
+  --color-bg: #FFFFFF;
+  --color-text: #1f2937; /* gray-800 */
 }
 
 /* ── Global Base Styles ─────────────────────────────────────────────────────── */
@@ -19,12 +19,15 @@ html {
 }
 
 body {
-  background-color: #FFFFFF;
-  color: #374151;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  margin: 0;
+  opacity: 1 !important; /* Force full opacity */
+  filter: none !important; /* Disable any global filters */
 }
 
 h1, h2, h3, h4, h5, h6 {

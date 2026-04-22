@@ -31,7 +31,7 @@ const Sidebar = ({ navItems = [], title = 'Navigation' }) => {
       </nav>
 
       {/* Sidebar footer */}
-      <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+      <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
         <p className="text-xs text-gray-400 font-medium tracking-wide">ExamGuard v1.0</p>
       </div>
     </aside>

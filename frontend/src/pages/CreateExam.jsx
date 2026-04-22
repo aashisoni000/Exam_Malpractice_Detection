@@ -84,135 +84,145 @@ const CreateExam = () => {
       {/* Page header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-            <PlusIcon className="w-5 h-5 text-indigo-400" />
+          <div className="w-10 h-10 rounded-xl bg-[#e5efdf] flex items-center justify-center">
+            <PlusIcon className="w-6 h-6 text-[#7FB77E]" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Create New Exam</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Create New Exam</h1>
         </div>
-        <p className="text-slate-400 text-sm ml-12">
-          Fill in the details below. Students will be able to see and take this exam.
+        <p className="text-gray-500 text-sm ml-14">
+          Fill in the details below. Students will see this exam on their dashboard.
         </p>
       </div>
 
       {/* Form card */}
-      <div className="card">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+      <Card className="p-1">
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
 
-          {/* Subject Name */}
-          <div>
-            <label htmlFor="subject_name" className="block text-sm font-medium text-slate-300 mb-1.5">
-              Subject Name <span className="text-indigo-400">*</span>
-            </label>
-            <div className="relative">
-              <BookOpenIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-              <input
-                id="subject_name"
-                name="subject_name"
-                type="text"
-                value={form.subject_name}
-                onChange={handleChange}
-                placeholder="e.g. Database Management Systems"
-                className={`input-field pl-9 ${errors.subject_name ? 'border-red-500/60' : ''}`}
-              />
-            </div>
-            {errors.subject_name && (
-              <p className="text-red-400 text-xs mt-1.5">{errors.subject_name}</p>
-            )}
-          </div>
-
-          {/* Exam Date */}
-          <div>
-            <label htmlFor="exam_date" className="block text-sm font-medium text-slate-300 mb-1.5">
-              Exam Date <span className="text-indigo-400">*</span>
-            </label>
-            <input
-              id="exam_date"
-              name="exam_date"
-              type="date"
-              min={today}
-              value={form.exam_date}
-              onChange={handleChange}
-              className={`input-field ${errors.exam_date ? 'border-red-500/60' : ''}`}
-              style={{ colorScheme: 'dark' }}
-            />
-            {errors.exam_date && (
-              <p className="text-red-400 text-xs mt-1.5">{errors.exam_date}</p>
-            )}
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label htmlFor="duration_minutes" className="block text-sm font-medium text-slate-300 mb-1.5">
-              Duration <span className="text-indigo-400">*</span>
-            </label>
-            <div className="relative">
-              <ClockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-              <input
-                id="duration_minutes"
-                name="duration_minutes"
-                type="number"
-                min="1"
-                max="360"
-                value={form.duration_minutes}
-                onChange={handleChange}
-                placeholder="e.g. 60"
-                className={`input-field pl-9 ${errors.duration_minutes ? 'border-red-500/60' : ''}`}
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">
-                minutes
-              </span>
-            </div>
-            {errors.duration_minutes && (
-              <p className="text-red-400 text-xs mt-1.5">{errors.duration_minutes}</p>
-            )}
-          </div>
-
-          {/* Preview badge */}
-          {form.subject_name && form.exam_date && form.duration_minutes && (
-            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
-              <p className="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-2">Preview</p>
-              <p className="text-white font-semibold">{form.subject_name}</p>
-              <p className="text-slate-400 text-sm mt-0.5">
-                {new Date(form.exam_date).toLocaleDateString('en-IN', { dateStyle: 'long' })}
-                &nbsp;·&nbsp;{form.duration_minutes} minutes
-              </p>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              id="create-exam-btn"
-              disabled={submitting}
-              className="btn-primary flex-1 flex items-center justify-center gap-2"
-            >
-              {submitting ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Creating…
-                </>
-              ) : (
-                <>
-                  <PlusIcon className="w-4 h-4" />
-                  Create Exam
-                </>
+            {/* Subject Name */}
+            <div className="space-y-2">
+              <label htmlFor="subject_name" className="block text-sm font-semibold text-gray-700">
+                Subject Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <BookOpenIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <input
+                  id="subject_name"
+                  name="subject_name"
+                  type="text"
+                  value={form.subject_name}
+                  onChange={handleChange}
+                  placeholder="e.g. Database Management Systems"
+                  className={`w-full bg-white border-2 rounded-xl py-3 pl-12 pr-4 outline-none transition-all focus:border-[#7FB77E] focus:ring-4 focus:ring-[#7FB77E]/10 ${
+                    errors.subject_name ? 'border-red-200' : 'border-gray-100'
+                  }`}
+                />
+              </div>
+              {errors.subject_name && (
+                <p className="text-red-500 text-xs font-medium">{errors.subject_name}</p>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/admin-dashboard')}
-              className="px-5 py-3 text-sm text-slate-400 hover:text-white border border-slate-700/40 
-                         hover:border-slate-600 rounded-xl transition-all duration-200"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Exam Date */}
+              <div className="space-y-2">
+                <label htmlFor="exam_date" className="block text-sm font-semibold text-gray-700">
+                  Exam Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="exam_date"
+                  name="exam_date"
+                  type="date"
+                  min={today}
+                  value={form.exam_date}
+                  onChange={handleChange}
+                  className={`w-full bg-white border-2 rounded-xl py-3 px-4 outline-none transition-all focus:border-[#7FB77E] focus:ring-4 focus:ring-[#7FB77E]/10 ${
+                    errors.exam_date ? 'border-red-200' : 'border-gray-100'
+                  }`}
+                />
+                {errors.exam_date && (
+                  <p className="text-red-500 text-xs font-medium">{errors.exam_date}</p>
+                )}
+              </div>
+
+              {/* Duration */}
+              <div className="space-y-2">
+                <label htmlFor="duration_minutes" className="block text-sm font-semibold text-gray-700">
+                  Duration (Mins) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <ClockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                  <input
+                    id="duration_minutes"
+                    name="duration_minutes"
+                    type="number"
+                    min="1"
+                    max="360"
+                    value={form.duration_minutes}
+                    onChange={handleChange}
+                    placeholder="e.g. 60"
+                    className={`w-full bg-white border-2 rounded-xl py-3 pl-12 pr-4 outline-none transition-all focus:border-[#7FB77E] focus:ring-4 focus:ring-[#7FB77E]/10 ${
+                      errors.duration_minutes ? 'border-red-200' : 'border-gray-100'
+                    }`}
+                  />
+                </div>
+                {errors.duration_minutes && (
+                  <p className="text-red-500 text-xs font-medium">{errors.duration_minutes}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Preview Section */}
+            {form.subject_name && form.exam_date && form.duration_minutes && (
+              <div className="bg-[#f5f9f4] border border-[#e5efdf] rounded-2xl p-5">
+                <p className="text-[10px] text-[#4d7f4c] font-bold uppercase tracking-widest mb-3">Live Preview</p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-gray-800 font-bold text-lg">{form.subject_name}</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {new Date(form.exam_date).toLocaleDateString('en-IN', { dateStyle: 'long' })}
+                    </p>
+                  </div>
+                  <div className="shrink-0 bg-[#7FB77E] text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                    {form.duration_minutes} mins
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-4 pt-4">
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`flex-1 bg-[#7FB77E] hover:bg-[#6aa96b] text-white font-bold py-4 rounded-2xl shadow-lg shadow-[#7FB77E]/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3`}
+              >
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <PlusIcon className="w-5 h-5" />
+                    Create Exam
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/admin-dashboard')}
+                className="px-8 py-4 font-bold text-gray-400 hover:text-gray-600 border-2 border-gray-100 hover:border-gray-200 rounded-2xl transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };
