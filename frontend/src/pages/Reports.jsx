@@ -9,14 +9,29 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log("Reports page loaded");
     const fetchReports = async () => {
       try {
-        const data = await getReports();
-        setReports(data);
+        const response = await getReports();
+        console.log("Reports API response:", response);
+        
+        let reportData = [];
+        if (Array.isArray(response)) {
+          reportData = response;
+        } else if (response && response.reports && Array.isArray(response.reports)) {
+          reportData = response.reports;
+        } else if (response && typeof response === 'object') {
+          reportData = Object.values(response).find(val => Array.isArray(val)) || [];
+        }
+
+        setReports(reportData);
+        setError(null);
       } catch (err) {
         console.error("Failed to fetch reports", err);
+        setError("Failed to load reports");
       } finally {
         setLoading(false);
       }
@@ -33,7 +48,7 @@ const Reports = () => {
     }
   };
 
-  const filteredReports = reports.filter(r => {
+  const filteredReports = (reports || []).filter(r => {
     const matchesSearch = r.student_name?.toLowerCase().includes(search.toLowerCase()) || 
                           r.exam_name?.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === 'All' || r.severity?.toLowerCase() === filter.toLowerCase();
@@ -48,6 +63,13 @@ const Reports = () => {
         <h1 className="text-3xl font-bold text-gray-800">Suspicion Reports</h1>
         <p className="text-gray-500 mt-2 font-medium">Review malpractice activity flagged by the system.</p>
       </div>
+
+      {error && (
+        <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => window.location.reload()} className="text-sm font-semibold underline rounded">Retry</button>
+        </div>
+      )}
 
       <Card>
         <CardContent className="pt-6">
@@ -83,7 +105,7 @@ const Reports = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredReports.length > 0 ? (
+                {filteredReports?.length > 0 ? (
                   filteredReports.map((report) => (
                     <tr key={report.report_id || Math.random()} className="hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-4 whitespace-nowrap">
@@ -98,7 +120,7 @@ const Reports = () => {
                 ) : (
                   <tr>
                     <td colSpan="5" className="py-8 text-center text-gray-500">
-                      No reports found.
+                      {reports?.length === 0 ? "No reports available" : "No reports found matching your search."}
                     </td>
                   </tr>
                 )}

@@ -11,11 +11,20 @@ exports.getExams = async (req, res, next) => {
 };
 
 exports.createExam = async (req, res, next) => {
+  console.log("Create Exam Payload:", req.body);
   try {
     const data = await examService.createExam(req.body);
-    sendSuccess(res, { exam: data }, 'Exam created successfully', 201);
+    // Explicit 201 Created as requested by user instructions
+    res.status(201).json({
+      message: "Exam created successfully",
+      exam_id: data.exam_id,
+      data: data // returning full object for frontend legacy support
+    });
   } catch (err) {
-    next(err);
+    console.error("Create Exam Error:", err);
+    res.status(500).json({
+      error: "Failed to create exam"
+    });
   }
 };
 
