@@ -24,3 +24,26 @@ export const submitExam = (submissionData) => {
     body: submissionData,
   });
 };
+
+export const startExamSession = (data) => apiClient('/exam/start', {
+  method: 'POST',
+  body: data,
+});
+
+export const endExamSession = (data) => apiClient('/exam/end', {
+  method: 'POST',
+  body: data,
+});
+
+export const logIpDuringExam = (data) => apiClient('/exam/log-ip', {
+  method: 'POST',
+  body: data,
+});
+
+export const logExamEvent = (data) => apiClient('/exam/log-event', {
+  method: 'POST',
+  body: data,
+});
+
+
+

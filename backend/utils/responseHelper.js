@@ -1,14 +1,15 @@
 exports.sendSuccess = (res, data, message = 'Success', statusCode = 200) => {
   res.status(statusCode).json({
-    success: true,
+    status: 'success',
     message,
-    ...data,
+    data
   });
 };
 
 exports.sendError = (res, message = 'Error', statusCode = 500) => {
   res.status(statusCode).json({
-    success: false,
+    status: 'error',
     message,
+    data: null
   });
 };

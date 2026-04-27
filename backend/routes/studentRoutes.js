@@ -6,5 +6,6 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.use(authMiddleware);
 
 router.get('/', studentController.getStudents);
+router.get('/dashboard/:student_id', studentController.getDashboard);
 
 module.exports = router;

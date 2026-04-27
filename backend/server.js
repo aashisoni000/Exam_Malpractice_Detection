@@ -11,8 +11,12 @@ const examRoutes = require('./routes/examRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const examSessionRoutes = require('./routes/examSessionRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
+
+
 
 // Connect to MySQL
 connectDB();
@@ -28,6 +32,10 @@ app.use('/api/exams', examRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/exam', examSessionRoutes);
+app.use('/api/admin', adminRoutes);
+
+
 
 // Error Handling
 app.use(errorMiddleware);

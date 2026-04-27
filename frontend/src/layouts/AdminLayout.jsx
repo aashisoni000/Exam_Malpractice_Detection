@@ -2,16 +2,18 @@ import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import { HomeIcon, UsersIcon, BookOpenIcon, DocumentIcon, ExclamationTriangleIcon } from '../components/Icons';
+import { HomeIcon, UsersIcon, BookOpenIcon, DocumentIcon, ExclamationTriangleIcon, SignalIcon } from '../components/Icons';
 import { useAuth } from '../hooks/useAuth';
 
 const adminNavItems = [
   { label: 'Dashboard', to: '/admin-dashboard', icon: <HomeIcon /> },
+  { label: 'Live Monitor', to: '/admin-dashboard/live-monitor', icon: <SignalIcon /> },
   { label: 'Students', to: '/admin-dashboard/students', icon: <UsersIcon /> },
   { label: 'Exams', to: '/admin-dashboard/exams', icon: <BookOpenIcon /> },
   { label: 'Reports', to: '/admin-dashboard/reports', icon: <DocumentIcon /> },
   { label: 'Suspicion Logs', to: '/admin-dashboard/suspicion-logs', icon: <ExclamationTriangleIcon /> },
 ];
+
 
 const AdminLayout = () => {
   const navigate = useNavigate();

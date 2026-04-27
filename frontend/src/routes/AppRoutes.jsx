@@ -20,6 +20,8 @@ import Reports from '../pages/Reports';
 import SuspicionLogs from '../pages/SuspicionLogs';
 import CreateExam from '../pages/CreateExam';
 import ExamBuilder from '../pages/ExamBuilder';
+import AdminLiveMonitor from '../pages/AdminLiveMonitor';
+
 
 // Layouts
 import StudentLayout from '../layouts/StudentLayout';
@@ -74,7 +76,9 @@ const AppRoutes = () => {
         <Route path="suspicion-logs" element={<SuspicionLogs />} />
         <Route path="create-exam" element={<CreateExam />} />
         <Route path="exam-builder/:examId" element={<ExamBuilder />} />
+        <Route path="live-monitor" element={<AdminLiveMonitor />} />
       </Route>
+
 
       {/* Fallbacks */}
       <Route path="/" element={<Navigate to="/login" replace />} />
