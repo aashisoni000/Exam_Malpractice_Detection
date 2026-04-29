@@ -45,5 +45,10 @@ export const logExamEvent = (data) => apiClient('/exam/log-event', {
   body: data,
 });
 
+export const assignStudents = (data) => apiClient('/exams/assign', {
+  method: 'POST',
+  body: data,
+});
+
 
 

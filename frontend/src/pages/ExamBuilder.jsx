@@ -345,6 +345,7 @@ const ExamBuilder = () => {
         newlySaved.push({ ...q, question_id, options: savedOpts });
       }
 
+      console.log("Questions added for exam:", examId);
       setSavedQuestions(prev => [...prev, ...newlySaved]);
       setQuestions([blankQuestion()]);
       showToast(`${newlySaved.length} question${newlySaved.length > 1 ? 's' : ''} saved successfully!`);

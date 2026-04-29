@@ -1,7 +1,18 @@
 const { pool } = require('../config/db');
 
-const getAllExams = async () => {
-  const [rows] = await pool.query('SELECT * FROM Exam');
+const getAllExams = async (user = {}) => {
+  if (user.role === 'student') {
+    const [rows] = await pool.query(`
+      SELECT DISTINCT e.* 
+      FROM Exam e
+      JOIN Exam_Assignment ea ON e.exam_id = ea.exam_id
+      WHERE ea.student_id = ?
+      ORDER BY e.exam_date DESC
+    `, [user.id || user.student_id]);
+    return rows;
+  }
+  
+  const [rows] = await pool.query('SELECT * FROM Exam ORDER BY exam_date DESC');
   return rows;
 };
 
@@ -109,4 +120,31 @@ const submitExam = async (attempt_id, answers_text, ip_address) => {
   }
 };
 
-module.exports = { getAllExams, createExam, startExam, submitExam };
+const assignStudents = async (examId, studentIds) => {
+  if (!examId || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+    throw new Error('Exam ID and a non-empty list of Student IDs are required.');
+  }
+
+  try {
+    console.log("Assigned exam:", examId);
+    console.log("Students assigned:", studentIds.length);
+
+    // Prepare values for bulk insert
+    const values = studentIds.map(sid => [examId, sid]);
+    
+    // Using ON DUPLICATE KEY UPDATE to prevent crashes if already assigned
+    const query = `
+      INSERT INTO Exam_Assignment (exam_id, student_id) 
+      VALUES ? 
+      ON DUPLICATE KEY UPDATE assigned_time = CURRENT_TIMESTAMP
+    `;
+    
+    const [result] = await pool.query(query, [values]);
+    return { success: true, affectedRows: result.affectedRows };
+  } catch (err) {
+    console.error('[SQL_ERROR] Failed to assign students:', err.message);
+    throw err;
+  }
+};
+
+module.exports = { getAllExams, createExam, startExam, submitExam, assignStudents };

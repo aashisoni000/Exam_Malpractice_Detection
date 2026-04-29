@@ -9,5 +9,6 @@ router.get('/', examController.getExams);
 router.post('/', examController.createExam);
 router.post('/start', examController.startExam);
 router.post('/submit', examController.submitExam);
+router.post('/assign', examController.assignStudentsToExam);
 
 module.exports = router;
