@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Card, { CardContent } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Loader from '../components/common/Loader';
-import { getReports } from '../api/reportApi';
+import api from '../services/api';
 
 const Reports = () => {
   const [reports, setReports] = useState([]);
@@ -12,20 +12,14 @@ const Reports = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    console.log("Reports page loaded");
     const fetchReports = async () => {
       try {
-        const response = await getReports();
-        console.log("Reports received:", response.data);
-        
-        // res.data is { status, message, data: [...] }
-        // so response.data.data is the array
-        const reportData = response?.data?.data || [];
-        setReports(reportData);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch reports", err);
-        setError("Failed to load reports");
+        console.log("Fetching reports...");
+        const res = await api.get("/reports");
+        console.log("Reports received:", res.data);
+        setReports(res?.data?.data || []);
+      } catch (error) {
+        console.error("Failed loading reports", error);
       } finally {
         setLoading(false);
       }
@@ -99,24 +93,22 @@ const Reports = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredReports?.length > 0 ? (
-                  filteredReports.map((report) => (
-                    <tr key={report.report_id || Math.random()} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-4 whitespace-nowrap">
-                        <span className="font-semibold text-gray-800">{report.student_name}</span>
-                      </td>
-                      <td className="py-4 px-4 text-gray-600">{report.subject_name}</td>
-                      <td className="py-4 px-4 text-gray-600">{report.reason}</td>
-                      <td className="py-4 px-4">{getSeverityBadge(report.severity)}</td>
-                      <td className="py-4 px-4 text-gray-500 text-sm">{new Date(report.reported_time).toLocaleString()}</td>
-                    </tr>
-                  ))
-                ) : (
+                {reports.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="py-8 text-center text-gray-500">
-                      {reports?.length === 0 ? "No reports available" : "No reports found matching your search."}
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      No reports found
                     </td>
                   </tr>
+                ) : (
+                  reports.map((r) => (
+                    <tr key={r.report_id}>
+                      <td>{r.student_name || "Unknown"}</td>
+                      <td>{r.subject_name || "Unknown"}</td>
+                      <td>{r.reason}</td>
+                      <td>{r.severity}</td>
+                      <td>{new Date(r.reported_time).toLocaleString()}</td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

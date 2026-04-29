@@ -51,6 +51,7 @@ const TakeExam = () => {
   const [networkSeverity, setNetworkSeverity] = useState(null);
   const [showClipboardWarning, setShowClipboardWarning] = useState(false);
   const [showCameraWarning, setShowCameraWarning] = useState(false);
+  const [cameraStatus, setCameraStatus] = useState("active");
 
   const timerRef = useRef(null);
   const ipLoggerRef = useRef(null);
@@ -62,6 +63,7 @@ const TakeExam = () => {
   const clipboardListenerRef = useRef(false);
   const videoRef = useRef(null);
   const cameraStreamRef = useRef(null);
+  const cameraCooldownRef = useRef(false);
 
   useEffect(() => {
     const initExam = async () => {
@@ -122,8 +124,22 @@ const TakeExam = () => {
     initExam();
   }, [examId, retryCount]);
 
+  const logEvent = (reason, severity) => {
+    if (cameraCooldownRef.current || !attemptId) return;
+    cameraCooldownRef.current = true;
+    
+    logExamEvent({ attempt_id: attemptId, reason, severity })
+      .catch(err => console.error("Camera Log Error:", err));
+
+    setTimeout(() => {
+      cameraCooldownRef.current = false;
+    }, 5000);
+  };
+
   // Start camera when attemptId is available
   useEffect(() => {
+    let cameraInterval = null;
+
     const startCamera = async () => {
       if (attemptId && videoRef.current) {
         try {
@@ -138,12 +154,22 @@ const TakeExam = () => {
           const videoTrack = stream.getVideoTracks()[0];
           if (videoTrack) {
             videoTrack.onended = () => {
-              logExamEvent({ attempt_id: attemptId, reason: "Camera disconnected", severity: "High" });
-              setShowCameraWarning(true);
+              console.log("Camera disconnected");
+              setCameraStatus("disconnected");
+              logEvent("Camera disconnected", "High");
             };
+
+            cameraInterval = setInterval(() => {
+              if (videoTrack.readyState === "ended") {
+                logEvent("Camera stream lost", "High");
+                setCameraStatus("lost");
+              }
+            }, 5000);
           }
         } catch (err) {
-          console.error("Camera Error:", err);
+          console.log("Camera permission denied");
+          setCameraStatus("denied");
+          logEvent("Camera permission denied", "High");
           setToast({ message: "Could not access camera. Please allow camera access to continue.", type: "error" });
           setShowCameraWarning(true);
         }
@@ -153,6 +179,7 @@ const TakeExam = () => {
     startCamera();
 
     return () => {
+      if (cameraInterval) clearInterval(cameraInterval);
       if (cameraStreamRef.current) {
         console.log("Stopping camera tracks");
         cameraStreamRef.current.getTracks().forEach(track => track.stop());
@@ -394,6 +421,11 @@ const TakeExam = () => {
 
   return (
     <>
+      {cameraStatus !== "active" && (
+        <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-center py-3 font-semibold z-[9999]">
+          Camera Issue Detected: {cameraStatus}
+        </div>
+      )}
       <div className="max-w-4xl mx-auto page-enter pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 

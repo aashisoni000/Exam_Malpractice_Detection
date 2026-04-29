@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getReports } from '../api/reportApi';
+import api from '../services/api';
 import Card, { CardContent } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Loader from '../components/common/Loader';
@@ -16,9 +16,10 @@ const SuspicionLogs = () => {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const res = await getReports();
-        setReports(res?.data?.reports || []);
+        const res = await api.get("/reports");
+        setReports(res?.data?.data || []);
       } catch (err) {
+        console.error("Failed loading logs", err);
         setError('Failed to load suspicion logs.');
       } finally {
         setLoading(false);

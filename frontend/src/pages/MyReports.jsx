@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getReports } from '../api/reportApi';
+import api from '../services/api';
 import Card, { CardContent } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Loader from '../components/common/Loader';
@@ -16,21 +16,18 @@ const MyReports = () => {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const res = await getReports();
-        console.log("MyReports API Response:", res);
-        const all = res?.data?.reports || [];
-        // Filter to only this student's reports
-        const mine = all.filter(r => !user || r.student_id == user.id || !r.student_id);
-        setReports(mine);
-      } catch (err) {
-        console.error("MyReports Fetch Error:", err);
-        setError('Failed to load your reports.');
+        const res = await api.get("/reports/student");
+        console.log("[FRONTEND] Student reports:", res.data);
+        console.log("[DEBUG] Reports state:", res.data?.data);
+        setReports(res?.data?.data || []);
+      } catch (error) {
+        console.error("[FRONTEND_ERROR]", error);
       } finally {
         setLoading(false);
       }
     };
     fetchReports();
-  }, [user]);
+  }, []);
 
   const getSeverityBadge = (severity) => {
     const s = severity?.toLowerCase();
@@ -75,18 +72,24 @@ const MyReports = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {reports.map((r, i) => (
-                  <tr key={r.report_id || i} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-gray-800">{r.exam_name || r.subject_name || '—'}</td>
-                    <td className="py-4 px-4 text-gray-600">{r.reason}</td>
-                    <td className="py-4 px-4">{getSeverityBadge(r.severity)}</td>
-                    <td className="py-4 px-4 text-gray-500 text-sm">
-                      {r.reported_time || r.report_time
-                        ? new Date(r.reported_time || r.report_time).toLocaleString()
-                        : '—'}
+                {reports.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "center" }} className="py-8 text-gray-400">
+                      No reports available
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  reports.map((r) => (
+                    <tr key={r.report_id}>
+                      <td className="py-4 px-4 font-semibold text-gray-800">{r.subject_name}</td>
+                      <td className="py-4 px-4 text-gray-600">{r.reason}</td>
+                      <td className="py-4 px-4">{getSeverityBadge(r.severity)}</td>
+                      <td className="py-4 px-4 text-gray-500 text-sm">
+                        {new Date(r.reported_time).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </CardContent>
