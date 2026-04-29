@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginApi } from '../api/authApi';
-import { ShieldCheckIcon } from '../components/Icons';
 import { useAuth } from '../hooks/useAuth';
-import Button from '../components/ui/Button';
-import Card, { CardContent } from '../components/ui/Card';
 import ErrorMessage from '../components/common/ErrorMessage';
 
 const Login = () => {
@@ -29,14 +26,10 @@ const Login = () => {
     try {
       const result = await loginApi({ email: form.email, password: form.password, role });
       
-      // The backend returns { status: 'success', message: '...', data: { token, user, role } }
       if (result.status === 'success' && result.data) {
         const { token, user, role: userRole } = result.data;
-        
-        console.log("Login success. Storing user and token:", userRole);
         login({ ...user, token, role: userRole });
         
-        // Use userRole for navigation
         if (userRole === 'admin') {
           navigate('/admin-dashboard');
         } else {
@@ -52,112 +45,126 @@ const Login = () => {
     }
   };
 
-  const roleOptions = [
-    { value: 'student', label: 'Student Login', desc: 'Access your exams' },
-    { value: 'admin', label: 'Admin Login', desc: 'Manage system' },
-  ];
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] px-4 relative overflow-hidden">
-      {/* Decorative background blocks */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#7FB77E]/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#A7D7C5]/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#e5efdf] border border-[#d4e6d0] rounded-2xl mb-4 shadow-sm">
-            <ShieldCheckIcon className="w-8 h-8 text-[#558b54]" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-1">ExamGuard</h1>
-          <p className="text-gray-500 text-sm font-medium">Online Exam Malpractice Detection System</p>
+    <div className="min-h-screen flex">
+      {/* LEFT PANEL */}
+      <div className="hidden md:flex w-1/2 bg-gradient-to-br from-[#2E7D32] to-[#A5D6A7] relative overflow-hidden">
+        {/* Dotted Pattern Overlay */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <svg width="100%" height="100%">
+            <defs>
+              <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1.5" fill="white" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#dots)" />
+          </svg>
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Sign in to your account</h2>
+        {/* Branding Text */}
+        <div className="relative z-10 flex flex-col justify-center items-center w-full text-white px-12">
+          <h1 className="text-4xl font-semibold tracking-wide mb-4">
+            Secure Exam System
+          </h1>
+          <p className="text-lg text-center opacity-90 leading-relaxed max-w-sm">
+            AI-powered monitoring platform ensuring fairness, security, and academic integrity.
+          </p>
+        </div>
+      </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {roleOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => { setRole(opt.value); setError(''); }}
-                  className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200
-                    ${role === opt.value
-                      ? 'bg-[#e5efdf] border-[#7FB77E] text-[#4d7f4c]'
-                      : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                  <span className={`text-sm font-bold ${role === opt.value ? 'text-[#4d7f4c]' : 'text-gray-600'}`}>
-                    {opt.label}
-                  </span>
-                </button>
-              ))}
+      {/* RIGHT PANEL */}
+      <div className="w-full md:w-1/2 flex items-center justify-center bg-[#F5F1E8]">
+        <div className="w-full max-w-md px-8 py-12">
+          {/* Title */}
+          <h2 className="text-3xl font-semibold text-[#1B1B1B] mb-2">
+            Welcome Back
+          </h2>
+          <p className="text-gray-600 mb-8 font-medium">
+            Login to continue to your dashboard
+          </p>
+
+          {/* FORM */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email/Reg Num */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                {role === 'admin' ? 'Email Address' : 'Registration Number'}
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="text"
+                autoComplete="username"
+                required
+                value={form.email}
+                onChange={handleChange}
+                placeholder={role === 'admin' ? 'Enter admin email' : 'Enter Registration Number'}
+                className="w-full px-4 py-3 rounded-lg border border-[#E0E0E0] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#81C784] transition duration-200"
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  {role === 'admin' ? 'Email address' : 'Registration Number'}
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="text"
-                  autoComplete="username"
-                  required
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder={role === 'admin' ? 'admin@exam.com' : 'e.g. RA2411026010894'}
-                  className="w-full bg-white border border-gray-300 text-gray-800 focus:border-[#7FB77E] focus:ring-2 focus:ring-[#7FB77E]/20 rounded-xl px-4 py-2.5 outline-none transition-all"
-                />
-              </div>
+            {/* Password */}
+            <div>
+              <label htmlFor="password" title="password" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Enter Password"
+                className="w-full px-4 py-3 rounded-lg border border-[#E0E0E0] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#81C784] transition duration-200"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  className="w-full bg-white border border-gray-300 text-gray-800 focus:border-[#7FB77E] focus:ring-2 focus:ring-[#7FB77E]/20 rounded-xl px-4 py-2.5 outline-none transition-all"
-                />
-              </div>
-
-              <ErrorMessage message={error} />
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full mt-2 py-3"
+            {/* Role Select */}
+            <div>
+              <label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Login As
+              </label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => { setRole(e.target.value); setError(''); }}
+                className="w-full px-4 py-3 rounded-lg border border-[#E0E0E0] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#81C784] transition duration-200 appearance-none cursor-pointer"
               >
-                {loading ? 'Signing in...' : `Sign in as ${role === 'admin' ? 'Admin' : 'Student'}`}
-              </Button>
-            </form>
-
-            <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-xs text-gray-500 font-bold mb-2 uppercase tracking-wide">Demo credentials</p>
-              <p className="text-sm text-gray-600 mb-1">
-                <span className="font-semibold text-gray-800">Student:</span> RA2411026010870 / (any password)
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-800">Admin:</span> admin@exam.com / admin123
-              </p>
+                <option value="student">Student</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
-          </CardContent>
-        </Card>
 
-        <p className="text-center text-xs text-gray-400 mt-8 font-medium">
-          &copy; {new Date().getFullYear()} ExamGuard · Malpractice Detection
-        </p>
+            {/* Error Message */}
+            <ErrorMessage message={error} />
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-lg bg-[#2E7D32] text-white font-semibold hover:bg-[#1B5E20] transition duration-200 shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Authenticating...' : 'Login'}
+            </button>
+          </form>
+
+          {/* Footer Demo Info (Minimal) */}
+          <div className="mt-10 pt-6 border-t border-[#E0E0E0]">
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-3">Demo credentials</p>
+            <div className="grid grid-cols-2 gap-4 text-xs font-medium">
+              <div>
+                <p className="text-gray-500">Student:</p>
+                <p className="text-gray-700">RA2411026010870 / (any)</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Admin:</p>
+                <p className="text-gray-700">admin@exam.com / admin123</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
