@@ -18,13 +18,9 @@ const Reports = () => {
         const response = await getReports();
         console.log("Reports API response:", response);
         
-        let reportData = [];
-        if (Array.isArray(response)) {
-          reportData = response;
-        } else if (response && response.reports && Array.isArray(response.reports)) {
-          reportData = response.reports;
-        } else if (response && typeof response === 'object') {
-          reportData = Object.values(response).find(val => Array.isArray(val)) || [];
+        let reportData = response?.data?.reports || [];
+        if (!reportData.length && Array.isArray(response?.data)) {
+          reportData = response.data;
         }
 
         setReports(reportData);

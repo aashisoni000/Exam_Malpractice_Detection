@@ -27,12 +27,23 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const data = await loginApi({ email: form.email, password: form.password, role });
-      if (data.token) {
-        login({ ...data.user, token: data.token, role: data.role });
-        navigate(data.role === 'admin' ? '/admin-dashboard' : '/student-dashboard');
+      const result = await loginApi({ email: form.email, password: form.password, role });
+      
+      // The backend returns { status: 'success', message: '...', data: { token, user, role } }
+      if (result.status === 'success' && result.data) {
+        const { token, user, role: userRole } = result.data;
+        
+        console.log("Login success. Storing user and token:", userRole);
+        login({ ...user, token, role: userRole });
+        
+        // Use userRole for navigation
+        if (userRole === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/student-dashboard');
+        }
       } else {
-        setError(data.message || 'Login failed.');
+        setError(result.message || 'Login failed.');
       }
     } catch (err) {
       setError(err.message || 'An unexpected error occurred.');

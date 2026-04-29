@@ -29,12 +29,12 @@ const AdminLiveMonitor = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [sessionsData, statsData] = await Promise.all([
+      const [sessionsRes, statsRes] = await Promise.all([
         getLiveSessions(),
         getLiveStats()
       ]);
-      setSessions(Array.isArray(sessionsData) ? sessionsData : (sessionsData.data || []));
-      setStats(statsData.data || statsData);
+      setSessions(sessionsRes?.data || []);
+      setStats(statsRes?.data || { active_sessions: 0, total_violations: 0, high_risk_students: 0 });
       setError(null);
     } catch (err) {
       console.error("Live Monitoring Error:", err);
@@ -47,8 +47,8 @@ const AdminLiveMonitor = () => {
   const fetchActivity = useCallback(async (attemptId) => {
     setActivityLoading(true);
     try {
-      const data = await getSessionActivity(attemptId);
-      setActivity(Array.isArray(data) ? data : (data.data || []));
+      const res = await getSessionActivity(attemptId);
+      setActivity(res?.data || []);
     } catch (err) {
       console.error("Activity Fetch Error:", err);
     } finally {

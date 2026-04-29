@@ -16,8 +16,8 @@ const SuspicionLogs = () => {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const data = await getReports();
-        setReports(Array.isArray(data) ? data : (data.reports || []));
+        const res = await getReports();
+        setReports(res?.data?.reports || []);
       } catch (err) {
         setError('Failed to load suspicion logs.');
       } finally {

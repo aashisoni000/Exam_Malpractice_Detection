@@ -16,8 +16,8 @@ const Exams = () => {
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const data = await getExams();
-        setExams(Array.isArray(data) ? data : (data.exams || []));
+        const res = await getExams();
+        setExams(res?.data?.exams || []);
       } catch (err) {
         setError('Failed to load exams.');
       } finally {

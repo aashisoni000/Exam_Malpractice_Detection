@@ -42,19 +42,19 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsData, chartsData, reportsData] = await Promise.all([
+        const [statsRes, chartsRes, reportsRes] = await Promise.all([
           getDashboardStats(),
           getDashboardCharts(),
           getRecentReports()
         ]);
         
-        setStats(statsData);
-        setCharts(chartsData);
-        if (reportsData?.reports) {
-          setRecentReports(reportsData.reports);
-        } else if (Array.isArray(reportsData)) {
-           setRecentReports(reportsData);
-        }
+        console.log("Admin Dashboard Stats:", statsRes);
+        console.log("Admin Dashboard Charts:", chartsRes);
+        console.log("Admin Dashboard Reports:", reportsRes);
+
+        setStats(statsRes?.data || {});
+        setCharts(chartsRes?.data || { severityDistribution: [], subjectAttempts: [] });
+        setRecentReports(reportsRes?.data?.reports || []);
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
       } finally {

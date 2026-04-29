@@ -265,14 +265,14 @@ const ExamBuilder = () => {
     const load = async () => {
       try {
         // Fetch all exams and find this one
-        const examsData = await apiClient('/exams');
-        const all = Array.isArray(examsData) ? examsData : (examsData.exams || []);
+        const examsRes = await apiClient('/exams');
+        const all = examsRes?.data?.exams || [];
         const found = all.find(e => String(e.exam_id) === String(examId));
         setExamInfo(found || { exam_id: examId, subject_name: `Exam #${examId}` });
 
         // Fetch existing questions
-        const qData = await getQuestions(examId);
-        const existing = Array.isArray(qData) ? qData : (qData.questions || []);
+        const qRes = await getQuestions(examId);
+        const existing = qRes?.data?.questions || [];
         setSavedQuestions(existing);
       } catch (err) {
         showToast('Failed to load exam data', 'error');
@@ -324,7 +324,7 @@ const ExamBuilder = () => {
           question_type: q.question_type,
           marks: q.marks,
         });
-        const question_id = qRes.question?.question_id || qRes.question_id;
+        const question_id = qRes?.data?.question?.question_id;
 
         // 2. Save options
         const savedOpts = [];

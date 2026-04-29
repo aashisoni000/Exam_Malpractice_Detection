@@ -14,8 +14,8 @@ const Students = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const data = await apiClient('/students');
-        setStudents(Array.isArray(data) ? data : (data.students || []));
+        const res = await apiClient('/students');
+        setStudents(res?.data?.students || []);
       } catch (err) {
         setError('Failed to load students.');
       } finally {

@@ -20,13 +20,22 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (userData) => {
+    console.log("AuthContext: Logging in user", userData);
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
+    if (userData.token) {
+      localStorage.setItem('token', userData.token);
+      console.log("AuthContext: Token stored in localStorage");
+    } else {
+      console.warn("AuthContext: No token found in userData");
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    console.log("AuthContext: Logged out, storage cleared");
   };
 
   return (

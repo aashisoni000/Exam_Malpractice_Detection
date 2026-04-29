@@ -16,12 +16,14 @@ const MyReports = () => {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const data = await getReports();
-        const all = Array.isArray(data) ? data : (data.reports || []);
+        const res = await getReports();
+        console.log("MyReports API Response:", res);
+        const all = res?.data?.reports || [];
         // Filter to only this student's reports
         const mine = all.filter(r => !user || r.student_id == user.id || !r.student_id);
         setReports(mine);
       } catch (err) {
+        console.error("MyReports Fetch Error:", err);
         setError('Failed to load your reports.');
       } finally {
         setLoading(false);

@@ -7,11 +7,15 @@ export const apiClient = async (endpoint, { method = 'GET', body, ...customConfi
   };
 
   const userStr = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+  
   if (userStr) {
     const user = JSON.parse(userStr);
-    if (user.token) {
-      headers.Authorization = `Bearer ${user.token}`;
+    if (user.token || token) {
+      headers.Authorization = `Bearer ${user.token || token}`;
     }
+  } else if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const config = {

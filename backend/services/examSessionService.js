@@ -5,29 +5,42 @@ const monitor = require('./MonitoringService');
  * Start an exam session
  */
 const startExam = async (studentId, examId, ipAddress) => {
-  const connection = await pool.getConnection();
   try {
-    await connection.beginTransaction();
+    // 0. Safety Check: Does an unfinished attempt already exist?
+    const [existing] = await pool.query(
+      `SELECT attempt_id FROM Exam_Attempt 
+       WHERE student_id = ? AND exam_id = ? AND end_time IS NULL 
+       LIMIT 1`,
+      [studentId, examId]
+    );
 
-    // 1. Insert Exam_Attempt
-    const [result] = await connection.query(
+    if (existing.length > 0) {
+      console.log("Resuming existing attempt:", existing[0].attempt_id);
+      return { attempt_id: existing[0].attempt_id };
+    }
+
+    // 1. Insert Exam_Attempt first (Critical)
+    const [result] = await pool.query(
       `INSERT INTO Exam_Attempt (student_id, exam_id, start_time, total_time_minutes) 
        VALUES (?, ?, NOW(), 0)`,
       [studentId, examId]
     );
     const attemptId = result.insertId;
+    console.log("Attempt created:", attemptId);
 
-    // 2. Log initial IP via MonitoringService
-    await monitor.logIP(attemptId, ipAddress);
+    // 2. Log initial IP separately with retry logic (Don't block exam start)
+    try {
+      await monitor.logIP(attemptId, ipAddress);
+      console.log("IP logged for attempt:", attemptId);
+    } catch (ipErr) {
+      console.error('[SERVICE_WARNING] Failed to log initial IP:', ipErr.message);
+      // Continue execution
+    }
 
-    await connection.commit();
     return { attempt_id: attemptId };
   } catch (err) {
-    await connection.rollback();
     console.error('[SQL_ERROR] Failed to start exam:', err.message);
     throw err;
-  } finally {
-    connection.release();
   }
 };
 
@@ -35,12 +48,9 @@ const startExam = async (studentId, examId, ipAddress) => {
  * End an exam session
  */
 const endExam = async (attemptId) => {
-  const connection = await pool.getConnection();
   try {
-    await connection.beginTransaction();
-
     // 1. Update Exam_Attempt with end_time and duration
-    await connection.query(
+    await pool.query(
       `UPDATE Exam_Attempt 
        SET end_time = NOW(), 
            total_time_minutes = TIMESTAMPDIFF(MINUTE, start_time, NOW()) 
@@ -49,7 +59,7 @@ const endExam = async (attemptId) => {
     );
 
     // 2. Fetch details for suspicion check
-    const [[attempt]] = await connection.query(
+    const [[attempt]] = await pool.query(
       `SELECT ea.*, e.duration_minutes 
        FROM Exam_Attempt ea 
        JOIN Exam e ON ea.exam_id = e.exam_id 
@@ -58,21 +68,19 @@ const endExam = async (attemptId) => {
     );
 
     // 3. Auto Detect Fast Submission
-    const duration = attempt.duration_minutes;
-    const timeTaken = attempt.total_time_minutes;
-    
-    if (timeTaken < (duration * 0.2)) {
-      await monitor.logViolation(attemptId, 'Very fast completion', 'Medium');
+    if (attempt) {
+      const duration = attempt.duration_minutes;
+      const timeTaken = attempt.total_time_minutes;
+      
+      if (timeTaken < (duration * 0.2)) {
+        await monitor.logViolation(attemptId, 'Very fast completion', 'Medium');
+      }
     }
 
-    await connection.commit();
-    return { success: true, time_taken_minutes: timeTaken };
+    return { success: true };
   } catch (err) {
-    await connection.rollback();
     console.error('[SQL_ERROR] Failed to end exam:', err.message);
     throw err;
-  } finally {
-    connection.release();
   }
 };
 
@@ -115,12 +123,9 @@ const logIpDuringExam = async (attemptId, ipAddress) => {
  * Log a specific suspicion event (Tab Switch, Focus Loss) with escalation logic
  */
 const logSuspicionEvent = async (attemptId, reason) => {
-  const connection = await pool.getConnection();
   try {
-    await connection.beginTransaction();
-
     // 1. Cooldown logic
-    const [[lastReport]] = await connection.query(
+    const [[lastReport]] = await pool.query(
       `SELECT reported_time FROM Suspicion_Report 
        WHERE attempt_id = ? AND reason = ? 
        ORDER BY reported_time DESC LIMIT 1`,
@@ -135,13 +140,12 @@ const logSuspicionEvent = async (attemptId, reason) => {
       else if (reason === "Network reconnected") cooldownMs = 10000;
       
       if (now - lastTime < cooldownMs) { 
-        await connection.rollback();
         return { success: false, message: 'Cooldown active', cooldown: true };
       }
     }
 
     // 2. Count existing events to determine severity
-    const [[{ count: eventCount }]] = await connection.query(
+    const [[{ count: eventCount }]] = await pool.query(
       `SELECT COUNT(*) as count FROM Suspicion_Report 
        WHERE attempt_id = ? AND reason = ?`,
       [attemptId, reason]
@@ -161,23 +165,16 @@ const logSuspicionEvent = async (attemptId, reason) => {
     // 3. Log via MonitoringService
     await monitor.logViolation(attemptId, reason, severity);
 
-    await connection.commit();
     return { 
       success: true, 
       count: newCount, 
       severity 
     };
   } catch (err) {
-    await connection.rollback();
     console.error('[SQL_ERROR] Failed to log suspicion event:', err.message);
     throw err;
-  } finally {
-    connection.release();
   }
 };
-
-module.exports = { startExam, endExam, logIpDuringExam, logSuspicionEvent };
-
 
 module.exports = { startExam, endExam, logIpDuringExam, logSuspicionEvent };
 

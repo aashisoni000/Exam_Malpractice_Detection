@@ -37,6 +37,8 @@ const TakeExam = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [attemptStarted, setAttemptStarted] = useState(false);
   
   // Monitoring States
   const [showIPWarning, setShowIPWarning] = useState(false);
@@ -52,12 +54,22 @@ const TakeExam = () => {
   const timerRef = useRef(null);
   const ipLoggerRef = useRef(null);
   const idleTimerRef = useRef(null);
+  const loadTimeoutRef = useRef(null);
 
   useEffect(() => {
     const initExam = async () => {
+      setLoading(true);
+      
+      // Safety timeout
+      loadTimeoutRef.current = setTimeout(() => {
+        if (loading) {
+          setToast({ message: "Loading is taking too long. Please check your connection or retry.", type: "warning" });
+        }
+      }, 5000);
+
       try {
         const examsRes = await getExams();
-        const allExams = Array.isArray(examsRes) ? examsRes : (examsRes.exams || []);
+        const allExams = examsRes?.data?.exams || [];
         const currentExam = allExams.find(e => e.exam_id === parseInt(examId));
         
         if (!currentExam) {
@@ -69,32 +81,37 @@ const TakeExam = () => {
         setExam(currentExam);
         setTimeLeft(currentExam.duration_minutes * 60);
 
+        // Optimized question fetch
         const qRes = await getQuestions(examId);
-        const qList = Array.isArray(qRes) ? qRes : (qRes.questions || []);
-        
-        const questionsWithOpts = await Promise.all(qList.map(async (q) => {
-          const optRes = await getOptions(q.question_id);
-          const opts = Array.isArray(optRes) ? optRes : (optRes.options || []);
-          return { ...q, options: opts };
-        }));
-        
+        const questionsWithOpts = qRes?.data?.questions || [];
         setQuestions(questionsWithOpts);
 
-        const startRes = await startExamSession({ 
-          student_id: user.id || user.student_id, 
-          exam_id: parseInt(examId) 
-        });
-        
-        if (startRes.attempt_id) {
-          setAttemptId(startRes.attempt_id);
+        // ONLY Start Attempt if not already started
+        if (!attemptStarted && !attemptId) {
+          console.log("Starting exam for:", examId);
+          const startRes = await startExamSession({ 
+            student_id: user.id || user.student_id, 
+            exam_id: parseInt(examId) 
+          });
+          
+          if (startRes?.data?.attempt_id) {
+            const newAttemptId = startRes.data.attempt_id;
+            setAttemptId(newAttemptId);
+            setAttemptStarted(true);
+            console.log("Received attempt_id:", newAttemptId);
+          } else {
+            setToast({ message: 'Failed to start exam session.', type: "error" });
+          }
         } else {
-          setToast({ message: 'Failed to start exam session.', type: "error" });
+          console.log("Attempt already in progress:", attemptId);
         }
+
       } catch (err) {
         console.error("Init Error:", err);
         setToast({ message: "Failed to initialize exam session.", type: "error" });
       } finally {
         setLoading(false);
+        if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
       }
     };
 
@@ -104,8 +121,9 @@ const TakeExam = () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (ipLoggerRef.current) clearInterval(ipLoggerRef.current);
       if (idleTimerRef.current) clearInterval(idleTimerRef.current);
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     };
-  }, [examId, user, navigate]);
+  }, [examId, retryCount]);
 
   // Handle Exam Timer
   useEffect(() => {
@@ -130,8 +148,8 @@ const TakeExam = () => {
       // 1. IP Logging
       const logIP = async () => {
         try {
-          const result = await logIpDuringExam({ attempt_id: attemptId });
-          if (result.multipleIP) setShowIPWarning(true);
+          const res = await logIpDuringExam({ attempt_id: attemptId });
+          if (res?.data?.multipleIP) setShowIPWarning(true);
         } catch (err) { console.error(err); }
       };
       logIP();
@@ -142,7 +160,7 @@ const TakeExam = () => {
         if (document.hidden) {
           try {
             const res = await logExamEvent({ attempt_id: attemptId, reason: "Tab switched" });
-            if (res.success) { setTabSwitchCount(res.count); setEventSeverity(res.severity); }
+            if (res?.data) { setTabSwitchCount(res.data.count); setEventSeverity(res.data.severity); }
           } catch (err) { console.error(err); }
         }
       };
@@ -164,9 +182,9 @@ const TakeExam = () => {
           if (newVal >= 60) {
             logExamEvent({ attempt_id: attemptId, reason: "Idle inactivity" })
               .then(res => {
-                if (res.success) {
-                  setIdleReportCount(res.count);
-                  setIdleSeverity(res.severity);
+                if (res?.data) {
+                  setIdleReportCount(res.data.count);
+                  setIdleSeverity(res.data.severity);
                 }
               }).catch(err => console.error(err));
             return 0;
@@ -184,9 +202,9 @@ const TakeExam = () => {
         setIsOnline(true);
         try {
           const res = await logExamEvent({ attempt_id: attemptId, reason: "Network reconnected" });
-          if (res.success) {
-            setReconnectCount(res.count);
-            setNetworkSeverity(res.severity);
+          if (res?.data) {
+            setReconnectCount(res.data.count);
+            setNetworkSeverity(res.data.severity);
           }
         } catch (err) { console.error(err); }
       };
@@ -220,6 +238,7 @@ const TakeExam = () => {
   };
 
   const autoSubmit = () => {
+    if (isSubmitting) return;
     setToast({ message: "Time is up! Auto-submitting...", type: "warning" });
     handleEndExam(true);
   };
@@ -246,7 +265,18 @@ const TakeExam = () => {
     }
   };
 
-  if (loading) return <Loader fullScreen />;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F5F0E6]">
+      <Loader />
+      <p className="mt-4 text-gray-500 font-medium animate-pulse">Initializing exam environment...</p>
+      <button 
+        onClick={() => setRetryCount(c => c + 1)}
+        className="mt-6 px-6 py-2 bg-white border border-gray-300 rounded-xl text-gray-600 font-bold hover:bg-gray-50 transition-all"
+      >
+        Retry Loading
+      </button>
+    </div>
+  );
 
   const isLowTime = timeLeft < 300;
 

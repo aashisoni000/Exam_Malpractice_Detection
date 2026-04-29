@@ -41,9 +41,11 @@ const StudentDashboard = () => {
       try {
         // Assuming user.id or user.student_id contains the ID
         const studentId = user?.student_id || user?.id;
+        console.log("Dashboard fetch for Student ID:", studentId);
         if (studentId) {
           const result = await getStudentDashboard(studentId);
-          setData(result);
+          console.log("Dashboard API Response:", result);
+          setData(result.data);
         }
       } catch (err) {
         console.error("Failed to fetch student dashboard data:", err);
@@ -153,7 +155,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Performance Summary Text */}
-      {data?.examsTaken > 0 && (
+      {data?.examsTaken > 0 ? (
         <div className="mb-8 p-6 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shrink-0">
             <CheckCircleIcon className="w-6 h-6 text-green-500" />
@@ -165,6 +167,18 @@ const StudentDashboard = () => {
               {data.reportsGenerated === 0 
                 ? " Great job! No suspicious activity has been recorded." 
                 : ` Focus on following all exam rules to maintain a low-risk profile.`}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-8 p-6 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+            <ExclamationTriangleIcon className="w-6 h-6 text-amber-500" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-800">No Attempts Yet</h3>
+            <p className="text-gray-600">
+              You haven't taken any exams yet. Start an exam to see your analytics and risk profile here.
             </p>
           </div>
         </div>

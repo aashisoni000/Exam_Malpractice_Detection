@@ -16,10 +16,11 @@ const MyExams = () => {
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const data = await getExams();
-        // API returns { success, message, exams } or just an array
-        setExams(Array.isArray(data) ? data : (data.exams || []));
+        const res = await getExams();
+        console.log("MyExams API Response:", res);
+        setExams(res?.data?.exams || []);
       } catch (err) {
+        console.error("MyExams Fetch Error:", err);
         setError('Failed to fetch exams. Please check your connection.');
       } finally {
         setLoading(false);
