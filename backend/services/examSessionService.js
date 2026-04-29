@@ -124,7 +124,18 @@ const logIpDuringExam = async (attemptId, ipAddress) => {
  */
 const logSuspicionEvent = async (attemptId, reason) => {
   try {
-    // 1. Cooldown logic
+    // 1. Cooldown logic (Step 7: Backend Safety)
+    const [[spamCheck]] = await pool.query(
+      `SELECT report_id FROM Suspicion_Report 
+       WHERE attempt_id = ? AND reason = ? 
+       AND reported_time >= NOW() - INTERVAL 5 SECOND`,
+      [attemptId, reason]
+    );
+
+    if (spamCheck) {
+      return { success: false, message: 'Cooldown active (spam prevention)', cooldown: true };
+    }
+
     const [[lastReport]] = await pool.query(
       `SELECT reported_time FROM Suspicion_Report 
        WHERE attempt_id = ? AND reason = ? 

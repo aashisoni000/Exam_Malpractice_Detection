@@ -118,6 +118,7 @@ const QuestionCard = ({ q, index, onChange, onRemove }) => {
             >
               <option value="mcq">MCQ (Multiple Choice)</option>
               <option value="truefalse">True / False</option>
+              <option value="written">Written Answer</option>
             </select>
           </div>
           <div className="w-28">
@@ -144,7 +145,14 @@ const QuestionCard = ({ q, index, onChange, onRemove }) => {
             <span className="text-xs text-gray-400 italic">Click ✓ to mark correct answer</span>
           </div>
           <div className="flex flex-col gap-2.5">
-            {q.question_type === 'truefalse' ? (
+            {q.question_type === 'written' ? (
+              <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center">
+                <p className="text-sm text-gray-400 font-medium italic">
+                  Written Answer Question — Students will provide a text response.
+                  No options required.
+                </p>
+              </div>
+            ) : q.question_type === 'truefalse' ? (
               <>
                 {['True', 'False'].map((label, i) => (
                   <div key={label} className="flex items-center gap-3">
@@ -215,19 +223,23 @@ const SavedQuestionCard = ({ q, index }) => (
       </span>
     </div>
     <div className="flex flex-wrap gap-2">
-      {(q.options || []).map((o, oi) => (
-        <span
-          key={oi}
-          className={`text-xs px-3 py-1 rounded-full border font-medium ${
-            o.is_correct
-              ? 'bg-[#e5efdf] border-[#7FB77E] text-[#4d7f4c]'
-              : 'bg-gray-50 border-gray-200 text-gray-600'
-          }`}
-        >
-          {o.is_correct && '✓ '}
-          {o.option_text}
-        </span>
-      ))}
+      {q.question_type === 'written' ? (
+        <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider py-1 px-2 border border-gray-200 rounded">Written Response Question</span>
+      ) : (
+        (q.options || []).map((o, oi) => (
+          <span
+            key={oi}
+            className={`text-xs px-3 py-1 rounded-full border font-medium ${
+              o.is_correct
+                ? 'bg-[#e5efdf] border-[#7FB77E] text-[#4d7f4c]'
+                : 'bg-gray-50 border-gray-200 text-gray-600'
+            }`}
+          >
+            {o.is_correct && '✓ '}
+            {o.option_text}
+          </span>
+        ))
+      )}
     </div>
   </div>
 );
@@ -326,21 +338,23 @@ const ExamBuilder = () => {
         });
         const question_id = qRes?.data?.question?.question_id;
 
-        // 2. Save options
+        // 2. Save options (Step 2: Skip if written)
         const savedOpts = [];
-        const optsToSave = q.question_type === 'truefalse'
-          ? q.options.length > 0
-            ? q.options
-            : [{ option_text: 'True', is_correct: false }, { option_text: 'False', is_correct: false }]
-          : q.options.filter(o => o.option_text.trim());
+        if (q.question_type !== 'written') {
+          const optsToSave = q.question_type === 'truefalse'
+            ? q.options.length > 0
+              ? q.options
+              : [{ option_text: 'True', is_correct: false }, { option_text: 'False', is_correct: false }]
+            : q.options.filter(o => o.option_text.trim());
 
-        for (const o of optsToSave) {
-          await createOption({
-            question_id,
-            option_text: o.option_text,
-            is_correct: !!o.is_correct,
-          });
-          savedOpts.push(o);
+          for (const o of optsToSave) {
+            await createOption({
+              question_id,
+              option_text: o.option_text,
+              is_correct: !!o.is_correct,
+            });
+            savedOpts.push(o);
+          }
         }
         newlySaved.push({ ...q, question_id, options: savedOpts });
       }

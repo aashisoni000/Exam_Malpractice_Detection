@@ -38,7 +38,6 @@ const TakeExam = () => {
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
-  const [attemptStarted, setAttemptStarted] = useState(false);
   
   // Monitoring States
   const [showIPWarning, setShowIPWarning] = useState(false);
@@ -50,6 +49,8 @@ const TakeExam = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [reconnectCount, setReconnectCount] = useState(0);
   const [networkSeverity, setNetworkSeverity] = useState(null);
+  const [showClipboardWarning, setShowClipboardWarning] = useState(false);
+  const [showCameraWarning, setShowCameraWarning] = useState(false);
 
   const timerRef = useRef(null);
   const ipLoggerRef = useRef(null);
@@ -57,6 +58,10 @@ const TakeExam = () => {
   const loadTimeoutRef = useRef(null);
   const attemptStartedRef = useRef(false);
   const listenersAttachedRef = useRef(false);
+  const clipboardCooldownRef = useRef(false);
+  const clipboardListenerRef = useRef(false);
+  const videoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
 
   useEffect(() => {
     const initExam = async () => {
@@ -66,7 +71,6 @@ const TakeExam = () => {
       setLoading(true);
       console.log("Attempt creation triggered");
       
-      // Safety timeout
       loadTimeoutRef.current = setTimeout(() => {
         if (loading) {
           setToast({ message: "Loading is taking too long. Please check your connection or retry.", type: "warning" });
@@ -87,12 +91,10 @@ const TakeExam = () => {
         setExam(currentExam);
         setTimeLeft(currentExam.duration_minutes * 60);
 
-        // Optimized question fetch
         const qRes = await getQuestions(examId);
         const questionsWithOpts = qRes?.data?.questions || [];
         setQuestions(questionsWithOpts);
 
-        // Start Attempt
         const startRes = await startExamSession({ 
           student_id: user.id || user.student_id, 
           exam_id: parseInt(examId) 
@@ -104,7 +106,7 @@ const TakeExam = () => {
           console.log("Received attempt_id:", newAttemptId);
         } else {
           setToast({ message: 'Failed to start exam session.', type: "error" });
-          attemptStartedRef.current = false; // Allow retry on failure
+          attemptStartedRef.current = false;
         }
 
       } catch (err) {
@@ -118,13 +120,84 @@ const TakeExam = () => {
     };
 
     initExam();
-
-    return () => {
-      // Cleanup happens on unmount
-    };
   }, [examId, retryCount]);
 
-  // Handle Exam Timer
+  // Start camera when attemptId is available
+  useEffect(() => {
+    const startCamera = async () => {
+      if (attemptId && videoRef.current) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 160, height: 120 }, 
+            audio: false 
+          });
+          videoRef.current.srcObject = stream;
+          cameraStreamRef.current = stream;
+          console.log("Camera started");
+
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            videoTrack.onended = () => {
+              logExamEvent({ attempt_id: attemptId, reason: "Camera disconnected", severity: "High" });
+              setShowCameraWarning(true);
+            };
+          }
+        } catch (err) {
+          console.error("Camera Error:", err);
+          setToast({ message: "Could not access camera. Please allow camera access to continue.", type: "error" });
+          setShowCameraWarning(true);
+        }
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      if (cameraStreamRef.current) {
+        console.log("Stopping camera tracks");
+        cameraStreamRef.current.getTracks().forEach(track => track.stop());
+        cameraStreamRef.current = null;
+      }
+    };
+  }, [attemptId]);
+
+  const logClipboardEvent = async (reason) => {
+    if (clipboardCooldownRef.current || !attemptId) return;
+    
+    clipboardCooldownRef.current = true;
+    setShowClipboardWarning(true);
+    
+    try {
+      await logExamEvent({ 
+        attempt_id: attemptId, 
+        reason: "Clipboard usage detected",
+        severity: "Medium" 
+      });
+    } catch (err) {
+      console.error("Clipboard Log Error:", err);
+    }
+
+    setTimeout(() => { setShowClipboardWarning(false); }, 3000);
+    setTimeout(() => { clipboardCooldownRef.current = false; }, 5000);
+  };
+
+  const handleCopy = (e) => logClipboardEvent("Copy detected");
+  const handlePaste = (e) => logClipboardEvent("Paste detected");
+
+  useEffect(() => {
+    if (attemptId && !isSubmitting && !clipboardListenerRef.current) {
+      document.addEventListener("copy", handleCopy);
+      document.addEventListener("paste", handlePaste);
+      clipboardListenerRef.current = true;
+
+      return () => {
+        document.removeEventListener("copy", handleCopy);
+        document.removeEventListener("paste", handlePaste);
+        clipboardListenerRef.current = false;
+      };
+    }
+  }, [attemptId, isSubmitting]);
+
   useEffect(() => {
     if (timeLeft > 0 && !loading && !isSubmitting) {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -142,10 +215,8 @@ const TakeExam = () => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [timeLeft, loading, isSubmitting]);
 
-  // Handle Monitoring Lifecycle
   useEffect(() => {
     if (attemptId && !isSubmitting) {
-      // 1. IP Logging
       if (!ipLoggerRef.current) {
         const logIP = async () => {
           try {
@@ -157,7 +228,6 @@ const TakeExam = () => {
         ipLoggerRef.current = setInterval(logIP, 30000);
       }
 
-      // 2. Event Listeners
       const handleVisibilityChange = async () => {
         if (document.hidden) {
           try {
@@ -200,7 +270,6 @@ const TakeExam = () => {
         listenersAttachedRef.current = true;
       }
 
-      // 3. Idle Detection
       if (!idleTimerRef.current) {
         idleTimerRef.current = setInterval(async () => {
           setIdleSeconds(prev => {
@@ -221,7 +290,6 @@ const TakeExam = () => {
       }
 
       return () => {
-        // Cleanup on unmount or submittion
         if (isSubmitting) {
           if (ipLoggerRef.current) clearInterval(ipLoggerRef.current);
           if (idleTimerRef.current) clearInterval(idleTimerRef.current);
@@ -247,8 +315,8 @@ const TakeExam = () => {
     return [h, m, s].map(v => v < 10 ? "0" + v : v).join(":");
   };
 
-  const handleAnswerChange = (qId, optionId) => {
-    setAnswers(prev => ({ ...prev, [qId]: optionId }));
+  const handleAnswerChange = (qId, answer) => {
+    setAnswers(prev => ({ ...prev, [qId]: answer }));
     setIdleSeconds(0);
   };
 
@@ -260,12 +328,34 @@ const TakeExam = () => {
 
   const handleEndExam = async (force = false) => {
     if (isSubmitting) return;
-    if (!force && !window.confirm("End exam and submit answers?")) return;
+
+    if (!force) {
+      const emptyWritten = questions.filter(q => 
+        q.question_type === 'written' && (!answers[q.question_id] || !answers[q.question_id].trim())
+      );
+      
+      if (emptyWritten.length > 0) {
+        if (!window.confirm(`You have ${emptyWritten.length} unanswered written questions. Submit anyway?`)) {
+          return;
+        }
+      } else if (!window.confirm("End exam and submit answers?")) {
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     if (timerRef.current) clearInterval(timerRef.current);
     if (ipLoggerRef.current) clearInterval(ipLoggerRef.current);
     if (idleTimerRef.current) clearInterval(idleTimerRef.current);
+    
+    document.removeEventListener("copy", handleCopy);
+    document.removeEventListener("paste", handlePaste);
+    clipboardListenerRef.current = false;
+
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => track.stop());
+      cameraStreamRef.current = null;
+    }
 
     try {
       const answersJson = JSON.stringify(answers);
@@ -303,10 +393,10 @@ const TakeExam = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto page-enter pb-20">
+    <>
+      <div className="max-w-4xl mx-auto page-enter pb-20">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Floating Warning Stack */}
       <div className="sticky top-0 z-40 flex flex-col gap-0.5 -mx-6">
         {!isOnline && (
           <div className="bg-red-700 text-white py-3 px-6 shadow-2xl flex items-center justify-center gap-3 animate-pulse border-b border-white/20">
@@ -338,9 +428,20 @@ const TakeExam = () => {
             <span className="font-bold text-xs uppercase tracking-wide">Network instability detected. Reconnects: {reconnectCount}</span>
           </div>
         )}
+        {showClipboardWarning && (
+          <div className="bg-yellow-500 text-white py-2.5 px-6 shadow-xl flex items-center justify-center gap-3 border-b border-white/10 animate-shake">
+            <ExclamationTriangleIcon className="w-5 h-5 text-white" />
+            <span className="font-bold text-sm uppercase">Clipboard usage detected. This event has been logged.</span>
+          </div>
+        )}
+        {showCameraWarning && (
+          <div className="bg-red-600 text-white py-3 px-6 shadow-xl flex items-center justify-center gap-3 border-b border-white/10 sticky top-0 z-50">
+            <ShieldCheckIcon className="w-5 h-5 text-white" />
+            <span className="font-black text-sm uppercase tracking-tight">Camera disconnected — exam integrity risk. Reconnect immediately!</span>
+          </div>
+        )}
       </div>
 
-      {/* Exam Header */}
       <div className="sticky top-0 z-20 bg-[#F5F0E6] py-5 mb-8 border-b border-[#E6DECE] shadow-sm px-6 -mx-6 transition-all">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -403,12 +504,32 @@ const TakeExam = () => {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {q.options.map((opt) => (
-                    <label key={opt.option_id} className={`flex items-center gap-5 p-5 rounded-2xl border-2 cursor-pointer transition-all ${answers[q.question_id] === opt.option_id ? 'border-[#7FB77E] bg-[#f5f9f4] shadow-md transform scale-[1.01]' : 'border-gray-100 bg-white hover:border-gray-300'}`}>
-                      <input type="radio" name={`q-${q.question_id}`} className="w-5 h-5 text-[#7FB77E] accent-[#7FB77E]" checked={answers[q.question_id] === opt.option_id} onChange={() => handleAnswerChange(q.question_id, opt.option_id)} disabled={isSubmitting} />
-                      <span className={`text-base font-bold transition-colors ${answers[q.question_id] === opt.option_id ? 'text-[#3e6c3d]' : 'text-gray-600'}`}>{opt.option_text}</span>
-                    </label>
-                  ))}
+                  {q.question_type === 'written' ? (
+                    <div className="space-y-3">
+                      <label htmlFor={`q-${q.question_id}`} className="text-xs font-bold text-gray-400 uppercase tracking-wider">Your Answer</label>
+                      <textarea
+                        id={`q-${q.question_id}`}
+                        rows={6}
+                        placeholder="Type your detailed answer here..."
+                        value={answers[q.question_id] || ''}
+                        onChange={(e) => handleAnswerChange(q.question_id, e.target.value)}
+                        disabled={isSubmitting}
+                        className="w-full bg-white border-2 border-gray-100 rounded-2xl p-5 outline-none focus:border-[#7FB77E] transition-all resize-none shadow-inner text-gray-700 font-medium"
+                      />
+                      <div className="flex justify-end">
+                        <span className={`text-[10px] font-bold uppercase ${(answers[q.question_id]?.length || 0) > 0 ? 'text-[#7FB77E]' : 'text-gray-300'}`}>
+                          {(answers[q.question_id]?.length || 0)} characters entered
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    q.options.map((opt) => (
+                      <label key={opt.option_id} className={`flex items-center gap-5 p-5 rounded-2xl border-2 cursor-pointer transition-all ${answers[q.question_id] === opt.option_id ? 'border-[#7FB77E] bg-[#f5f9f4] shadow-md transform scale-[1.01]' : 'border-gray-100 bg-white hover:border-gray-300'}`}>
+                        <input type="radio" name={`q-${q.question_id}`} className="w-5 h-5 text-[#7FB77E] accent-[#7FB77E]" checked={answers[q.question_id] === opt.option_id} onChange={() => handleAnswerChange(q.question_id, opt.option_id)} disabled={isSubmitting} />
+                        <span className={`text-base font-bold transition-colors ${answers[q.question_id] === opt.option_id ? 'text-[#3e6c3d]' : 'text-gray-600'}`}>{opt.option_text}</span>
+                      </label>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -436,7 +557,27 @@ const TakeExam = () => {
         </div>
       </div>
     </div>
-  );
+    
+    {attemptId && (
+      <div 
+        className="fixed top-16 right-6 w-[220px] h-[165px] bg-black rounded-xl overflow-hidden shadow-2xl z-[9999] border border-white/20"
+        style={{ position: 'fixed', top: '70px', right: '24px' }}
+      >
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover"
+          playsInline
+          muted
+          autoPlay
+        />
+        <div className="absolute bottom-[6px] right-[6px] bg-[#16a34a] text-white text-[11px] px-[6px] py-[2px] rounded-[6px] font-bold shadow-sm flex items-center gap-1 opacity-80">
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+          LIVE
+        </div>
+      </div>
+    )}
+  </>
+);
 };
 
 export default TakeExam;
