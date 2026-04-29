@@ -1,5 +1,6 @@
 const examService = require('../services/examService');
-const { sendSuccess } = require('../utils/responseHelper');
+const { pool } = require('../config/db');
+const { sendSuccess, sendError } = require('../utils/responseHelper');
 
 exports.getExams = async (req, res, next) => {
   try {
@@ -14,21 +15,26 @@ exports.getExams = async (req, res, next) => {
 };
 
 exports.createExam = async (req, res, next) => {
-  console.log("Create Exam Payload:", req.body);
+  console.log("Create Exam Request:", req.body);
+
+  const { subject_name, exam_date, duration_minutes } = req.body;
+
+  if (!subject_name || !exam_date || !duration_minutes) {
+    return sendError(res, "Missing required fields", 400);
+  }
+
   try {
-    const data = await examService.createExam(req.body);
-    console.log("New exam created:", data.exam_id);
-    // Explicit 201 Created as requested by user instructions
-    res.status(201).json({
-      message: "Exam created successfully",
-      exam_id: data.exam_id,
-      data: data // returning full object for frontend legacy support
-    });
+    const [result] = await pool.query(
+      `INSERT INTO Exam (subject_name, exam_date, duration_minutes) VALUES (?, ?, ?)`,
+      [subject_name, exam_date, duration_minutes]
+    );
+
+    return sendSuccess(res, {
+      exam_id: result.insertId
+    }, "Exam created successfully", 201);
   } catch (err) {
     console.error("Create Exam Error:", err);
-    res.status(500).json({
-      error: "Failed to create exam"
-    });
+    return sendError(res, "Failed to create exam", 500);
   }
 };
 

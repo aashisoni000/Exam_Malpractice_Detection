@@ -16,13 +16,11 @@ const Reports = () => {
     const fetchReports = async () => {
       try {
         const response = await getReports();
-        console.log("Reports API response:", response);
+        console.log("Reports received:", response.data);
         
-        let reportData = response?.data?.reports || [];
-        if (!reportData.length && Array.isArray(response?.data)) {
-          reportData = response.data;
-        }
-
+        // res.data is { status, message, data: [...] }
+        // so response.data.data is the array
+        const reportData = response?.data?.data || [];
         setReports(reportData);
         setError(null);
       } catch (err) {
@@ -46,7 +44,7 @@ const Reports = () => {
 
   const filteredReports = (reports || []).filter(r => {
     const matchesSearch = r.student_name?.toLowerCase().includes(search.toLowerCase()) || 
-                          r.exam_name?.toLowerCase().includes(search.toLowerCase());
+                          r.subject_name?.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === 'All' || r.severity?.toLowerCase() === filter.toLowerCase();
     return matchesSearch && matchesFilter;
   });
@@ -107,10 +105,10 @@ const Reports = () => {
                       <td className="py-4 px-4 whitespace-nowrap">
                         <span className="font-semibold text-gray-800">{report.student_name}</span>
                       </td>
-                      <td className="py-4 px-4 text-gray-600">{report.exam_name}</td>
+                      <td className="py-4 px-4 text-gray-600">{report.subject_name}</td>
                       <td className="py-4 px-4 text-gray-600">{report.reason}</td>
                       <td className="py-4 px-4">{getSeverityBadge(report.severity)}</td>
-                      <td className="py-4 px-4 text-gray-500 text-sm">{new Date(report.report_time).toLocaleString()}</td>
+                      <td className="py-4 px-4 text-gray-500 text-sm">{new Date(report.reported_time).toLocaleString()}</td>
                     </tr>
                   ))
                 ) : (

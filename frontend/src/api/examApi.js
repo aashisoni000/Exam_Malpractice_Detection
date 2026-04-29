@@ -1,14 +1,12 @@
+import api from '../services/api';
 import { apiClient } from './apiClient';
 
 export const getExams = () => {
   return apiClient('/exams');
 };
 
-export const createExam = (examData) => {
-  return apiClient('/exams', {
-    method: 'POST',
-    body: examData,
-  });
+export const createExam = (data) => {
+  return api.post("/exams", data);
 };
 
 export const startExam = (attemptData) => {

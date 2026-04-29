@@ -55,10 +55,16 @@ const TakeExam = () => {
   const ipLoggerRef = useRef(null);
   const idleTimerRef = useRef(null);
   const loadTimeoutRef = useRef(null);
+  const attemptStartedRef = useRef(false);
+  const listenersAttachedRef = useRef(false);
 
   useEffect(() => {
     const initExam = async () => {
+      if (attemptStartedRef.current) return;
+      attemptStartedRef.current = true;
+      
       setLoading(true);
+      console.log("Attempt creation triggered");
       
       // Safety timeout
       loadTimeoutRef.current = setTimeout(() => {
@@ -86,29 +92,25 @@ const TakeExam = () => {
         const questionsWithOpts = qRes?.data?.questions || [];
         setQuestions(questionsWithOpts);
 
-        // ONLY Start Attempt if not already started
-        if (!attemptStarted && !attemptId) {
-          console.log("Starting exam for:", examId);
-          const startRes = await startExamSession({ 
-            student_id: user.id || user.student_id, 
-            exam_id: parseInt(examId) 
-          });
-          
-          if (startRes?.data?.attempt_id) {
-            const newAttemptId = startRes.data.attempt_id;
-            setAttemptId(newAttemptId);
-            setAttemptStarted(true);
-            console.log("Received attempt_id:", newAttemptId);
-          } else {
-            setToast({ message: 'Failed to start exam session.', type: "error" });
-          }
+        // Start Attempt
+        const startRes = await startExamSession({ 
+          student_id: user.id || user.student_id, 
+          exam_id: parseInt(examId) 
+        });
+        
+        if (startRes?.data?.attempt_id) {
+          const newAttemptId = startRes.data.attempt_id;
+          setAttemptId(newAttemptId);
+          console.log("Received attempt_id:", newAttemptId);
         } else {
-          console.log("Attempt already in progress:", attemptId);
+          setToast({ message: 'Failed to start exam session.', type: "error" });
+          attemptStartedRef.current = false; // Allow retry on failure
         }
 
       } catch (err) {
         console.error("Init Error:", err);
         setToast({ message: "Failed to initialize exam session.", type: "error" });
+        attemptStartedRef.current = false;
       } finally {
         setLoading(false);
         if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
@@ -118,16 +120,14 @@ const TakeExam = () => {
     initExam();
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (ipLoggerRef.current) clearInterval(ipLoggerRef.current);
-      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
-      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      // Cleanup happens on unmount
     };
   }, [examId, retryCount]);
 
   // Handle Exam Timer
   useEffect(() => {
     if (timeLeft > 0 && !loading && !isSubmitting) {
+      if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -139,23 +139,25 @@ const TakeExam = () => {
         });
       }, 1000);
     }
-    return () => clearInterval(timerRef.current);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [timeLeft, loading, isSubmitting]);
 
   // Handle Monitoring Lifecycle
   useEffect(() => {
     if (attemptId && !isSubmitting) {
       // 1. IP Logging
-      const logIP = async () => {
-        try {
-          const res = await logIpDuringExam({ attempt_id: attemptId });
-          if (res?.data?.multipleIP) setShowIPWarning(true);
-        } catch (err) { console.error(err); }
-      };
-      logIP();
-      ipLoggerRef.current = setInterval(logIP, 30000);
+      if (!ipLoggerRef.current) {
+        const logIP = async () => {
+          try {
+            const res = await logIpDuringExam({ attempt_id: attemptId });
+            if (res?.data?.multipleIP) setShowIPWarning(true);
+          } catch (err) { console.error(err); }
+        };
+        logIP();
+        ipLoggerRef.current = setInterval(logIP, 30000);
+      }
 
-      // 2. Tab/Focus Interaction
+      // 2. Event Listeners
       const handleVisibilityChange = async () => {
         if (document.hidden) {
           try {
@@ -164,40 +166,18 @@ const TakeExam = () => {
           } catch (err) { console.error(err); }
         }
       };
+      
       const handleBlur = async () => {
         try { await logExamEvent({ attempt_id: attemptId, reason: "Window focus lost" }); } catch (err) { console.error(err); }
       };
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-      window.addEventListener("blur", handleBlur);
 
-      // 3. Idle Detection
       const resetIdle = () => setIdleSeconds(0);
-      window.addEventListener("mousemove", resetIdle);
-      window.addEventListener("keydown", resetIdle);
-      window.addEventListener("click", resetIdle);
 
-      idleTimerRef.current = setInterval(async () => {
-        setIdleSeconds(prev => {
-          const newVal = prev + 1;
-          if (newVal >= 60) {
-            logExamEvent({ attempt_id: attemptId, reason: "Idle inactivity" })
-              .then(res => {
-                if (res?.data) {
-                  setIdleReportCount(res.data.count);
-                  setIdleSeverity(res.data.severity);
-                }
-              }).catch(err => console.error(err));
-            return 0;
-          }
-          return newVal;
-        });
-      }, 1000);
-
-      // 4. Network Monitoring
       const handleOffline = async () => {
         setIsOnline(false);
         try { await logExamEvent({ attempt_id: attemptId, reason: "Network disconnected" }); } catch (err) { console.error(err); }
       };
+
       const handleOnline = async () => {
         setIsOnline(true);
         try {
@@ -208,19 +188,54 @@ const TakeExam = () => {
           }
         } catch (err) { console.error(err); }
       };
-      window.addEventListener("offline", handleOffline);
-      window.addEventListener("online", handleOnline);
+
+      if (!listenersAttachedRef.current) {
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("blur", handleBlur);
+        window.addEventListener("mousemove", resetIdle);
+        window.addEventListener("keydown", resetIdle);
+        window.addEventListener("click", resetIdle);
+        window.addEventListener("offline", handleOffline);
+        window.addEventListener("online", handleOnline);
+        listenersAttachedRef.current = true;
+      }
+
+      // 3. Idle Detection
+      if (!idleTimerRef.current) {
+        idleTimerRef.current = setInterval(async () => {
+          setIdleSeconds(prev => {
+            const newVal = prev + 1;
+            if (newVal >= 60) {
+              logExamEvent({ attempt_id: attemptId, reason: "Idle inactivity" })
+                .then(res => {
+                  if (res?.data) {
+                    setIdleReportCount(res.data.count);
+                    setIdleSeverity(res.data.severity);
+                  }
+                }).catch(err => console.error(err));
+              return 0;
+            }
+            return newVal;
+          });
+        }, 1000);
+      }
 
       return () => {
-        if (ipLoggerRef.current) clearInterval(ipLoggerRef.current);
-        if (idleTimerRef.current) clearInterval(idleTimerRef.current);
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-        window.removeEventListener("blur", handleBlur);
-        window.removeEventListener("mousemove", resetIdle);
-        window.removeEventListener("keydown", resetIdle);
-        window.removeEventListener("click", resetIdle);
-        window.removeEventListener("offline", handleOffline);
-        window.removeEventListener("online", handleOnline);
+        // Cleanup on unmount or submittion
+        if (isSubmitting) {
+          if (ipLoggerRef.current) clearInterval(ipLoggerRef.current);
+          if (idleTimerRef.current) clearInterval(idleTimerRef.current);
+          document.removeEventListener("visibilitychange", handleVisibilityChange);
+          window.removeEventListener("blur", handleBlur);
+          window.removeEventListener("mousemove", resetIdle);
+          window.removeEventListener("keydown", resetIdle);
+          window.removeEventListener("click", resetIdle);
+          window.removeEventListener("offline", handleOffline);
+          window.removeEventListener("online", handleOnline);
+          ipLoggerRef.current = null;
+          idleTimerRef.current = null;
+          listenersAttachedRef.current = false;
+        }
       };
     }
   }, [attemptId, isSubmitting]);

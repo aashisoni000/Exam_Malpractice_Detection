@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/responseHelper');
 exports.getReports = async (req, res, next) => {
   try {
     const data = await reportService.getAllReports();
-    sendSuccess(res, { reports: data }, 'Reports retrieved successfully');
+    sendSuccess(res, data, 'Reports fetched successfully');
   } catch (err) {
     next(err);
   }

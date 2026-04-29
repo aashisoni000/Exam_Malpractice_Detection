@@ -43,21 +43,33 @@ const CreateExam = () => {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
+    const payload = {
+      subject_name: form.subject_name.trim(),
+      exam_date: form.exam_date,
+      duration_minutes: parseInt(form.duration_minutes)
+    };
+    
+    console.log("Sending payload:", payload);
+
     setSubmitting(true);
     try {
       const res = await examAPI.create(
-        form.subject_name.trim(),
-        form.exam_date,
-        parseInt(form.duration_minutes)
+        payload.subject_name,
+        payload.exam_date,
+        payload.duration_minutes
       );
-      // axios wraps data: res.data is the server response body
-      const exam = res?.data?.data?.exam || res?.data?.exam || {};
-      const examId = exam.exam_id;
+      
+      // Axios response structure: res.data is the body
+      const responseData = res?.data;
+      const exam_id = responseData?.data?.exam_id || responseData?.exam_id;
+
       setToast({ message: `Exam "${form.subject_name}" created! Add questions now.`, type: 'success' });
+      
       setTimeout(() => {
-        if (examId) {
-          navigate(`/admin-dashboard/exam-builder/${examId}`);
+        if (exam_id) {
+          navigate(`/admin-dashboard/exam-builder/${exam_id}`);
         } else {
+          console.warn("No exam_id returned from backend, falling back to dash");
           navigate('/admin-dashboard/exams');
         }
       }, 1500);

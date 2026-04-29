@@ -2,11 +2,8 @@ const { pool } = require('../config/db');
 
 const getAllReports = async () => {
   const [rows] = await pool.query(`
-    SELECT
-      sr.report_id,
-      ea.student_id,
-      ea.exam_id,
-      s.name,
+    SELECT 
+      s.name AS student_name,
       e.subject_name,
       sr.reason,
       sr.severity,
